@@ -29,13 +29,13 @@ file(GLOB LIB_SRC
   "${LIB_SRC_DIR}/*.c"
 )
 
-add_library(libgallium STATIC ${LIB_SRC})
-add_library(libgalliumso SHARED ${LIB_SRC})
+add_library(libgallispin STATIC ${LIB_SRC})
+add_library(libgallispinso SHARED ${LIB_SRC})
 
-target_link_libraries(libgallium ${Boost_LIBRARIES})
-target_link_libraries(libgallium ${llvm_libs})
-target_link_libraries(libgallium ${PYTHON_LIBRARY})
-target_link_libraries(libgallium elf)
+target_link_libraries(libgallispin ${Boost_LIBRARIES})
+target_link_libraries(libgallispin ${llvm_libs})
+target_link_libraries(libgallispin ${PYTHON_LIBRARY})
+target_link_libraries(libgallispin elf)
 
 file(GLOB EXEC_SRC
   "${PROJECT_SOURCE_DIR}/exec/*.cpp"
@@ -50,7 +50,7 @@ foreach(src_file ${EXEC_SRC})
     add_executable(${prog_name} ${src_file})
     target_link_libraries(${prog_name} ${Boost_LIBRARIES})
     target_link_libraries(${prog_name} ${llvm_libs})
-    target_link_libraries(${prog_name} libgallium)
+    target_link_libraries(${prog_name} libgallispin)
     target_link_libraries(${prog_name} elf)    
 endforeach(src_file ${EXEC_SRC})
 
@@ -59,7 +59,7 @@ foreach(src_file ${TEST_SRC})
     add_executable(${prog_name} ${src_file})
     target_link_libraries(${prog_name} ${Boost_LIBRARIES})
     target_link_libraries(${prog_name} ${llvm_libs})
-    target_link_libraries(${prog_name} libgallium)
+    target_link_libraries(${prog_name} libgallispin)
     target_link_libraries(${prog_name} elf)
     target_link_libraries(${prog_name} gtest_main)
     target_link_libraries(${prog_name} gtest)
