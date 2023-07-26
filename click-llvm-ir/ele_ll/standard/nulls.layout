@@ -1,0 +1,211 @@
+
+*** Dumping AST Record Layout
+         0 | struct __pthread_cond_s::(anonymous at /usr/include/bits/thread-shared-types.h:97:5)
+         0 |   unsigned int __low
+         4 |   unsigned int __high
+           | [sizeof=8, dsize=8, align=4,
+           |  nvsize=8, nvalign=4]
+
+*** Dumping AST Record Layout
+         0 | union __pthread_cond_s::(anonymous at /usr/include/bits/thread-shared-types.h:94:17)
+         0 |   unsigned long long __wseq
+         0 |   struct __pthread_cond_s::(anonymous at /usr/include/bits/thread-shared-types.h:97:5) __wseq32
+         0 |     unsigned int __low
+         4 |     unsigned int __high
+           | [sizeof=8, dsize=8, align=8,
+           |  nvsize=8, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | struct __pthread_internal_list
+         0 |   struct __pthread_internal_list * __prev
+         8 |   struct __pthread_internal_list * __next
+           | [sizeof=16, dsize=16, align=8,
+           |  nvsize=16, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | struct __pthread_mutex_s
+         0 |   int __lock
+         4 |   unsigned int __count
+         8 |   int __owner
+        12 |   unsigned int __nusers
+        16 |   int __kind
+        20 |   short __spins
+        22 |   short __elision
+        24 |   struct __pthread_internal_list __list
+        24 |     struct __pthread_internal_list * __prev
+        32 |     struct __pthread_internal_list * __next
+           | [sizeof=40, dsize=40, align=8,
+           |  nvsize=40, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | struct __pthread_cond_s::(anonymous at /usr/include/bits/thread-shared-types.h:106:5)
+         0 |   unsigned int __low
+         4 |   unsigned int __high
+           | [sizeof=8, dsize=8, align=4,
+           |  nvsize=8, nvalign=4]
+
+*** Dumping AST Record Layout
+         0 | union __pthread_cond_s::(anonymous at /usr/include/bits/thread-shared-types.h:103:17)
+         0 |   unsigned long long __g1_start
+         0 |   struct __pthread_cond_s::(anonymous at /usr/include/bits/thread-shared-types.h:106:5) __g1_start32
+         0 |     unsigned int __low
+         4 |     unsigned int __high
+           | [sizeof=8, dsize=8, align=8,
+           |  nvsize=8, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | struct __pthread_cond_s
+         0 |   union __pthread_cond_s::(anonymous at /usr/include/bits/thread-shared-types.h:94:17) 
+         0 |     unsigned long long __wseq
+         0 |     struct __pthread_cond_s::(anonymous at /usr/include/bits/thread-shared-types.h:97:5) __wseq32
+         0 |       unsigned int __low
+         4 |       unsigned int __high
+         8 |   union __pthread_cond_s::(anonymous at /usr/include/bits/thread-shared-types.h:103:17) 
+         8 |     unsigned long long __g1_start
+         8 |     struct __pthread_cond_s::(anonymous at /usr/include/bits/thread-shared-types.h:106:5) __g1_start32
+         8 |       unsigned int __low
+        12 |       unsigned int __high
+        16 |   unsigned int [2] __g_refs
+        24 |   unsigned int [2] __g_size
+        32 |   unsigned int __g1_orig_size
+        36 |   unsigned int __wrefs
+        40 |   unsigned int [2] __g_signals
+           | [sizeof=48, dsize=48, align=8,
+           |  nvsize=48, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | struct __pthread_rwlock_arch_t
+         0 |   unsigned int __readers
+         4 |   unsigned int __writers
+         8 |   unsigned int __wrphase_futex
+        12 |   unsigned int __writers_futex
+        16 |   unsigned int __pad3
+        20 |   unsigned int __pad4
+        24 |   int __cur_writer
+        28 |   int __shared
+        32 |   signed char __rwelision
+        33 |   unsigned char [7] __pad1
+        40 |   unsigned long __pad2
+        48 |   unsigned int __flags
+           | [sizeof=56, dsize=56, align=8,
+           |  nvsize=56, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | lldiv_t
+         0 |   long long quot
+         8 |   long long rem
+           | [sizeof=16, dsize=16, align=8,
+           |  nvsize=16, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | struct msghdr
+         0 |   void * msg_name
+         8 |   socklen_t msg_namelen
+        16 |   struct iovec * msg_iov
+        24 |   size_t msg_iovlen
+        32 |   void * msg_control
+        40 |   size_t msg_controllen
+        48 |   int msg_flags
+           | [sizeof=56, dsize=56, align=8,
+           |  nvsize=56, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | struct in_addr
+         0 |   in_addr_t s_addr
+           | [sizeof=4, dsize=4, align=4,
+           |  nvsize=4, nvalign=4]
+
+*** Dumping AST Record Layout
+         0 | union in6_addr::(anonymous at /usr/include/netinet/in.h:214:5)
+         0 |   uint8_t [16] __u6_addr8
+         0 |   uint16_t [8] __u6_addr16
+         0 |   uint32_t [4] __u6_addr32
+           | [sizeof=16, dsize=16, align=4,
+           |  nvsize=16, nvalign=4]
+
+*** Dumping AST Record Layout
+         0 | struct sockaddr
+         0 |   sa_family_t sa_family
+         2 |   char [14] sa_data
+           | [sizeof=16, dsize=16, align=2,
+           |  nvsize=16, nvalign=2]
+
+*** Dumping AST Record Layout
+         0 | struct in6_addr
+         0 |   union in6_addr::(anonymous at /usr/include/netinet/in.h:214:5) __in6_u
+         0 |     uint8_t [16] __u6_addr8
+         0 |     uint16_t [8] __u6_addr16
+         0 |     uint32_t [4] __u6_addr32
+           | [sizeof=16, dsize=16, align=4,
+           |  nvsize=16, nvalign=4]
+
+*** Dumping AST Record Layout
+         0 | struct sockaddr_storage
+         0 |   sa_family_t ss_family
+         2 |   char [118] __ss_padding
+       120 |   unsigned long __ss_align
+           | [sizeof=128, dsize=128, align=8,
+           |  nvsize=128, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | struct sockaddr_in6
+         0 |   sa_family_t sin6_family
+         2 |   in_port_t sin6_port
+         4 |   uint32_t sin6_flowinfo
+         8 |   struct in6_addr sin6_addr
+         8 |     union in6_addr::(anonymous at /usr/include/netinet/in.h:214:5) __in6_u
+         8 |       uint8_t [16] __u6_addr8
+         8 |       uint16_t [8] __u6_addr16
+         8 |       uint32_t [4] __u6_addr32
+        24 |   uint32_t sin6_scope_id
+           | [sizeof=28, dsize=28, align=4,
+           |  nvsize=28, nvalign=4]
+
+*** Dumping AST Record Layout
+         0 | struct timeval
+         0 |   __time_t tv_sec
+         8 |   __suseconds_t tv_usec
+           | [sizeof=16, dsize=16, align=8,
+           |  nvsize=16, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | struct String::memo_t
+         0 |   volatile uint32_t refcount
+         4 |   uint32_t capacity
+         8 |   volatile uint32_t dirty
+        12 |   char [8] real_data
+           | [sizeof=20, dsize=20, align=4,
+           |  nvsize=20, nvalign=4]
+
+*** Dumping AST Record Layout
+         0 | class IPAddress
+         0 |   uint32_t _addr
+           | [sizeof=4, dsize=4, align=4,
+           |  nvsize=4, nvalign=4]
+
+*** Dumping AST Record Layout
+         0 | union Timestamp::rep_t
+         0 |   int64_t x
+           | [sizeof=8, dsize=8, align=8,
+           |  nvsize=8, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | class Timestamp
+         0 |   union Timestamp::rep_t _t
+         0 |     int64_t x
+           | [sizeof=8, dsize=8, align=8,
+           |  nvsize=8, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | struct timespec
+         0 |   __time_t tv_sec
+         8 |   __syscall_slong_t tv_nsec
+           | [sizeof=16, dsize=16, align=8,
+           |  nvsize=16, nvalign=8]
+
+*** Dumping AST Record Layout
+         0 | class Element::Port
+         0 |   class Element * _e
+         8 |   int _port
+           | [sizeof=16, dsize=12, align=8,
+           |  nvsize=12, nvalign=8]
