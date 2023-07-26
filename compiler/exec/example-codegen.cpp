@@ -1,4 +1,6 @@
-#include "highLv-ir.cpp"
+#include "highLv-ir.hpp"
+#include "llvm-load.hpp"
+
 #include <iostream>
 #include <fstream>
 
