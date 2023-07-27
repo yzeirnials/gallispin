@@ -13,6 +13,11 @@
 #include <unordered_map>
 
 // EdgeStoreIf: just for reference, not used
+// E: represent weight of edge, could be any type
+// set_edge(): set an directed edge and its weight
+// get_edge(): obtain weight of an undirected edge
+// have_edge(): check whether the given directed edge exists
+
 template <typename E>
 class EdgeStoreIf {
 public:
@@ -69,13 +74,15 @@ public:
 
     bool have_edge(size_t src, size_t dst) const {
         for ( auto &e : edgeLists[src] ) {
-            if ( s.dst == dst ) {
+            if ( e.dst == dst ) {
                 return true;
             }
         }
         return false;
     }
 
+    // class OutEdgeIter:
+    //  iterate over all outgoing edges of the specified node
     class OutEdgeIter { 
     public:
         OutEdgeIter(const AdjacencyList<E> *l, size_t src) : adjLists_(l), src_(src) {}
@@ -89,12 +96,48 @@ public:
             auto dst = adjLists_ -> edgeLists[src_][currIdx_].dst;
             return *adjLists_ -> get_edge(src_, dst).value();
         }
+
+        OutEdgeIter operator++() {
+            if( currIdx_ < adjLists_ -> edgeLists[src_].size() ) {
+                currIdx_ ++;
+            }
+            return OutEdgeIter(adjLists_, src_, currIdx_);
+        }
+
+        OutEdgeIter operator++(int) {
+            auto old = OutEdgeIter(adjLists_, src_, currIdx_ );
+            if( currIdx_ < adjLists_ -> edgeLists[src_].size() ) {
+                currIdx_ ++;
+            }
+            return old;
+        }
+
+        bool operator==(const OutEdgeIter &o) {
+            return currIdx_ == o.currIdx_ && src_ == o.src_;
+        }
+
+        bool operator!=(const OutEdgeIter &o) {
+            return !((*this) == o);
+        }
+
+        size_t operator*() {
+            return adjLists_ -> edgeLists[src_][currIdx_].dst;
+        }
+
+
     protected:
         size_t src_;
         size_t currIdx_;
         const AdjacencyList<E> *adjLists_;
     };
 
+    OutEdgeIter out_edge_begin(size_t src) const {
+        return OutIdgeIter(this, src, 0);
+    }
+
+    OutEdgeIter out_edge_end(size_t src) const {
+        return OutEdgeIter(this, src, edgeLists[src].size());
+    }
 
 
 protected:
@@ -109,3 +152,6 @@ protected:
     size_t n_vertex_;
     std::vector<std::vector<EdgeListEntry>> edgeLists;
 }
+
+
+template <typename E>
