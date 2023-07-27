@@ -33,7 +33,7 @@ template <typename E>
 class AdjacencyList{
 public:
     AdjacencyList(int n_vertex) : 
-        n_vertex(n_vertex), edgeLists(n_vertex) {}
+        n_vertex_(n_vertex), edgeLists(n_vertex) {}
     
     void set_edge(size_t src, size_t dst, E&& e){
         auto opt = get_edge(src, dst);
@@ -153,5 +153,53 @@ protected:
     std::vector<std::vector<EdgeListEntry>> edgeLists;
 }
 
-
 template <typename E>
+class AdjacencyMatrix {
+public:
+    // Matrix was stored in edgeVals with 1-d, use edgeIdx(row, col) to get the true idx
+    AdjacencyMatrix(int n_vertex) :
+        n_vertex_(n_vertex), edgeVals(n_vertex * n_vertex, std::nullopt) {}
+    
+    void set_edge(size_t src, size_t dst, E&& e) {
+        auto idx = edgeIdx(src, dst);
+        edgeVals[idx] = e;
+    }
+
+    void set_edge(size_t src, size_t dst, const E& e) {
+        auto idx = edgeIdx(src, dst);
+        edgeVals[idx] = std::move(e);
+    }
+
+    std::optional<E*> get_edge(size_t src, size_t dst) {
+        auto idx = edgeIdx(src, dst);
+        if(edgeVals[idx].has_value()) {
+            return edgeVals[idx].value();
+        } else{
+            return std::nullopt;
+        }
+    }
+
+    std::optional<const E*> get_edge(size_t src, size_t dst) const {
+        auto idx = edgeIdx(src, dst);
+        if(edgeVals[idx].has_value()) {
+            return edgeVals[idx].value();
+        } else {
+            return std::nullopt;
+        }
+    }
+
+    bool have_edge(size_t src, size_t dst) const {
+        auto idx = edgeIdx(src, dst);
+        return edgeVals[idx].has_value();
+    }
+
+    class OutEdgeIter{}
+
+protected:
+    size_t n_vertex_;
+    std::vector<std::optional<E>> edgeVals;
+
+    size_t edgeIdx(size_t src, size_t dst) const {
+        return src * n_vertex_ + dst;
+    }
+}
