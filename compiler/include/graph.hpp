@@ -193,7 +193,23 @@ public:
         return edgeVals[idx].has_value();
     }
 
-    class OutEdgeIter{}
+    class OutEdgeIter{
+    public:
+        OutEdgeIter(const AdjacencyMatrix<E> *m, size_t src) : adjMat_(m), src_(src) {} 
+        OutEdgeIter(const AdjacencyMatrix<E> *m, size_t src, size_t curr) : 
+            adjMat_(m), src_(src), currVertex_(curr) {}
+        OutEdgeIter end() {
+            return OutEdgeIter(adjMat_, src_, adjMat_ -> n_vertex_);
+        } 
+
+        const E& value() {
+            return *adjMat_ -> get_edge(src_, currVertex_).value();
+        }
+    protected:
+        size_t src_;
+        size_t currVertex_;
+        const AdjacencyMatrix<E> *adjMat_;
+    }
 
 protected:
     size_t n_vertex_;
