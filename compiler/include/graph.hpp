@@ -205,10 +205,52 @@ public:
         const E& value() {
             return *adjMat_ -> get_edge(src_, currVertex_).value();
         }
+
+        OutEdgeIter operator++() {
+            do {
+                currVertex_ ++;
+            } while (currVertex_ < adjMat_ -> n_vertex_ && !adjMat_ -> have_edge(src_, currVertex_));
+            return OutEdgeIter(adjMat_, src_, currVertex_);
+        }
+
+        // the argument "int" seems unused
+        OutEdgeIter operator++(int) {
+            auto old = OutEdgeIter(adjMat_, src_, currVertex_);
+            do {
+                currVertex_ ++;
+            } while (currVertex_ < adjMat_ -> n_vertex_ && !adjMat_ -> have_edge(src_, currVertex_));
+            return old;
+        }
+
+        bool operator==(const OutEdgeIter &o) {
+            return (currVertex_ == o.currVertex_) && (src_ == o.src_);
+        }
+
+        bool operator!=(const OutEdgeIter &o) {
+            return !((*this) == o);
+        }
+
+        size_t operator*() {
+            return currVertex_;
+        }
+
+
     protected:
         size_t src_;
         size_t currVertex_;
         const AdjacencyMatrix<E> *adjMat_;
+    }
+
+    OutEdgeIter out_edge_begin(size_t src) const{
+        size_t dst = 0;
+        while (dst < n_vertex_ && !have_edge(src, dst)) {
+            dst ++;
+        }
+        return OutEdgeIter(this, src, dst);
+    }
+
+    OutEdgeIter out_edge_end(size_t src) const {
+        return OutEdgeIter(this, src, n_vertex_);
     }
 
 protected:
@@ -218,4 +260,143 @@ protected:
     size_t edgeIdx(size_t src, size_t dst) const {
         return src * n_vertex_ + dst;
     }
+}
+
+
+//
+// 
+template <typename V, typename E, typename EdgeContainerT=AdjacencyMatrix<E>>
+class Graph {
+public:
+    Graph(std::vector<V> vertices, EdgeContainerT edges) : 
+        vertices_(std::move(vertices)), edges_(std::move(edges)) {}
+
+    size_t n_vertex() const {
+        return vertices_.size();
+    }
+
+    V& vertex_ref(size_t vid) {
+        assert(vid < vertices_.size());
+        return vertices_[vid];
+    }
+
+    const V& vertex_ref(size_t vid) const {
+        assert(vid < vertices_.size());
+        return vertices_[vid];
+    }
+
+    EdgeContainerT& edges() {return edges_;}
+    const EdgeContainerT& edges() const {return edges_;}
+
+    template <typename VV, typename EE, typename EC>
+    friend class Graph;
+
+    bool IsAcyclic() const {
+        std::vector<bool> visited(vertices_.size(), false);
+        std::vector<bool> visiting(vertices_.size(), false);
+        for (size_t i = 0; i < vertices_.size(); i++) {
+            if(HasCycleFrom(visited, visiting, i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool HasCycleFrom(size_t v) {
+        std::vector<bool> visited(vertices_.size(), false);
+        std::vector<bool> visiting(vertices_.size(), false);
+        return HasCycleFrom(visited, visiting, v);
+    }
+
+    bool HasCycleFrom(std::vector<bool> &visited, std::vector<bool> &visiting, size_t curr) const {
+        if(visited[curr]) {
+            return false;
+        }
+        if(visiting[curr]) {
+            return true;
+        }
+        visited[curr] = true;
+        visiting[curr] = true;
+        // for( auto iter = edges_.out_edge_begin(curr); iter != iter.end(); iter++ ) {
+        for(auto iter = edges_.out_edge_begin(curr); iter != edges_.out_edge_end(); iter++) { 
+            auto neighbor = *iter;
+            auto found_cycle = HasCycleFrom(visited, visiting, neighbor);
+            if( found_cycle ) { return true; }
+        }
+        visiting[curr] = false;
+        return false;
+    }
+
+    std::vector<size_t> TopologicalSort() const {
+        assert(IsAcyclic());
+        std::vector<bool> visited(vertices_.size(), false);
+        std::vector<size_t> order;
+        for(size_t i = 0; i < vertices_.size(); i++) {
+            dfs(visited, order, i);
+        }
+        return order;
+    }
+
+    std::vector<std::vector<size_t>> StronglyConnectedComponents() const {
+        std::vector<std::vector<size_t>> scc_list;
+
+
+        // step 1 : DFS
+        std::vector<size_t> dfs_order;
+        std::vector<bool> dfs_visited(vertices_.size(), false);
+        for( size_t i = 0; i < vertices_.size(); i++) {
+            dfs(dfs_order, dfs_visited, i);
+        }
+
+        // step 2 : reverse the Graph
+        std::vector<std::monostate> rev_vertices(vertices_.size(), std::monostate());
+        AdjacencyList<std::monostate> rev_edges(vertices_.size());
+
+        for(size_t i = 0; i < vertices_.size(); i++) {
+            for(auto iter = edges_.out_edge_begin(); iter != edges_.out_edge_end(); iter++){
+                rev_edges.set_edge(*iter, i, std::monostate()) ;
+            }
+        }
+        Graph<
+            std::monostate,
+            std::monostate,
+            AdjacencyList<std::monostate>
+        > rev_graph(std::move(rev_vertices), std::move(rev_edges));
+        std::transform(
+            dfs_visited.begin();
+            dfs_visited.end();
+            dfs_visited.begin(),
+            [] (bool b) -> bool {return false;}
+        );
+
+        // step 3 : do dfs on reverse graph
+        for( int i = dfs_order.size() - 1; i >= 0; i--) {
+            std::vector<size_t> scc;
+            rev_graph.dfs(dfs_visited, scc, dfs_order[i]);
+            if( scc.size() > 0) {
+                scc_list.emplace_back(std::move(scc));
+            }
+        }
+        return scc_list;
+    }
+
+
+
+protected:
+    std::vector<V> vertices_;
+    EdgeContainerT edges_;
+
+    void dfs(std::vector<bool> &visited, std::vector<size_t> &result, size_t curr){
+        if(visited[curr]) {
+            return;
+        }
+
+        visited[curr] = true;
+        // for(auto iter = edges_.out_edge_begin(curr); iter != iter.end(); iter++){
+        for(auto iter = edges_.out_edge_begin(curr); iter != edges_.out_edge_end(); iter++) {
+            dfs(visited, result, *iter);
+        }
+        result.emplace_back(curr);
+    }
+
 }
