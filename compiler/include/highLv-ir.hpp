@@ -336,7 +336,113 @@ namespace HIR {
         void set_meta(std::shared_ptr<AnnoT> anno) {
             anno_ = anno;
         }
-        
 
+        template<typename AnnoT>
+        std::shared_ptr<AnnoT> meta() const {
+            return std::static_pointer_cast<AnnoT>(anno_);
+        }
+
+        template<typename AnnoT>
+        AnnoT &meta_ref() {
+            return *((AnnoT *)anno_.get());
+        }
+
+        template<typename AnnoT>
+        const AnnoT &meta_ref() const {
+            return *((AnnoT *)anno_.get());
+        }
+
+        void print(std::ostream &os) const;
+
+        void update_uses();
+    };
+
+
+    template<typename DerivedT, typename RetT=void>
+    class OperationVisitor{
+    public:
+        RetT visit(Operation &op) {
+            using T = Operation::T;
+            switch (op.type) {
+            case T::ALLOCA:
+                return static_cast<DerivedT *>(this) -> visitAlloca(op);
+                break;
+            case T::ARITH:
+                return static_cast<DerivedT *>(this) -> visitARITH(op);
+                break;
+            case T::STRUCT_SET:
+                return static_cast<DerivedT *>(this) -> visitStructSet(op);
+                break;
+            case T::STRUCT_GET:
+                return static_cast<DerivedT *>(this) -> visitStructGet(op);
+                break;
+            case T::LOAD:
+                return static_cast<DerivedT *>(this) -> visitLoad(op);
+                break;
+            case T::STORE:
+                return static_cast<DerivedT *>(this) -> visitStore(op);
+                break;
+            case T::GEP:
+                return static_cast<DerivedT *>(this) -> visitGep(op);
+                break;
+            case T::PHINODE:
+                return static_cast<DerivedT *>(this) -> visitPhinode(op);
+                break;
+            case T::BITCAST:
+                return static_cast<DerivedT *>(this) -> visitBitCast(op);
+                break;
+            case T::SELECT:
+                return static_cast<DerivedT *>(this) -> visitSelect(op);
+                break;
+            case T::FUNC_CALL:
+                return static_cast<DerivedT *>(this) -> visitFuncCall(op);
+                break;
+            case T::PKT_HDR_LOAD:
+                return static_cast<DerivedT *>(this) -> visitPktLoad(op);
+                break;
+            case T::PKT_HDR_STORE:
+                return static_cast<DerivedT *>(this) -> visitPktStore(op);
+                break;
+            case T::PKT_ENCAP:
+                return static_cast<DerivedT *>(this) -> visitPktEncap(op);
+                break;
+            case T::PKT_DECAP:
+                return static_cast<DerivedT *>(this) -> visitPktDecap(op);
+                break;    
+            case T::UNREACHABLE:
+                return static_cast<DerivedT *>(this) -> visitUnreachable(op);
+                break;
+            }
+            assert(false && "unreachable");
+        }
+ 
+    protected:
+    #define VISITOR_DEFAULT_IMPL(fn)                                        \
+        RetT fn(Operation &op) {                                            \
+            return static_cast<DerivedT *>(this) -> visitDefault(op);       \
+        }
+
+        RetT visitDefault(Operation &op) {
+            assert(false && "not implemented");
+        }
+
+        VISITOR_DEFAULT_IMPL(visitAlloca);
+        VISITOR_DEFAULT_IMPL(visitArith);
+        VISITOR_DEFAULT_IMPL(visitStructSet);
+        VISITOR_DEFAULT_IMPL(visitStructGet);
+        VISITOR_DEFAULT_IMPL(visitLoad);
+        VISITOR_DEFAULT_IMPL(visitStore);
+        VISITOR_DEFAULT_IMPL(visitGep);
+        VISITOR_DEFAULT_IMPL(visitPhiNode);
+        VISITOR_DEFAULT_IMPL(visitBitCast);
+        VISITOR_DEFAULT_IMPL(visitSelect);
+        VISITOR_DEFAULT_IMPL(visitFuncCall);
+        VISITOR_DEFAULT_IMPL(visitPktLoad);
+        VISITOR_DEFAULT_IMPL(visitPktStore);
+        VISITOR_DEFAULT_IMPL(visitPktEncap);
+        VISITOR_DEFAULT_IMPL(visitPktDecap);
+        VISITOR_DEFAULT_IMPL(visitUnreachable);
+    
+    #undef VISITOR_DEFAULT_IMPL
     };
 }
