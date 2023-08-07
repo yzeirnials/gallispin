@@ -445,4 +445,161 @@ namespace HIR {
     
     #undef VISITOR_DEFAULT_IMPL
     };
+
+    template<typename DerivedT, typename RetT=void>
+    class OperationConstVisitor{
+    public:
+        RetT visit(const Operation &op) {
+            using T = Operation::T;
+            switch (op.type) {
+            case T::ALLOCA:
+                return static_cast<DerivedT *>(this) -> visitAlloca(op);
+                break;
+            case T::ARITH:
+                return static_cast<DerivedT *>(this) -> visitARITH(op);
+                break;
+            case T::STRUCT_SET:
+                return static_cast<DerivedT *>(this) -> visitStructSet(op);
+                break;
+            case T::STRUCT_GET:
+                return static_cast<DerivedT *>(this) -> visitStructGet(op);
+                break;
+            case T::LOAD:
+                return static_cast<DerivedT *>(this) -> visitLoad(op);
+                break;
+            case T::STORE:
+                return static_cast<DerivedT *>(this) -> visitStore(op);
+                break;
+            case T::GEP:
+                return static_cast<DerivedT *>(this) -> visitGep(op);
+                break;
+            case T::PHINODE:
+                return static_cast<DerivedT *>(this) -> visitPhinode(op);
+                break;
+            case T::BITCAST:
+                return static_cast<DerivedT *>(this) -> visitBitCast(op);
+                break;
+            case T::SELECT:
+                return static_cast<DerivedT *>(this) -> visitSelect(op);
+                break;
+            case T::FUNC_CALL:
+                return static_cast<DerivedT *>(this) -> visitFuncCall(op);
+                break;
+            case T::PKT_HDR_LOAD:
+                return static_cast<DerivedT *>(this) -> visitPktLoad(op);
+                break;
+            case T::PKT_HDR_STORE:
+                return static_cast<DerivedT *>(this) -> visitPktStore(op);
+                break;
+            case T::PKT_ENCAP:
+                return static_cast<DerivedT *>(this) -> visitPktEncap(op);
+                break;
+            case T::PKT_DECAP:
+                return static_cast<DerivedT *>(this) -> visitPktDecap(op);
+                break;    
+            case T::UNREACHABLE:
+                return static_cast<DerivedT *>(this) -> visitUnreachable(op);
+                break;
+            }
+            assert(false && "unreachable");
+        }
+ 
+    protected:
+    #define VISITOR_DEFAULT_IMPL(fn)                                        \
+        RetT fn(const Operation &op) {                                      \
+            return static_cast<DerivedT *>(this) -> visitDefault(op);       \
+        }
+
+        RetT visitDefault(const Operation &op) {
+            assert(false && "not implemented");
+        }
+
+        VISITOR_DEFAULT_IMPL(visitAlloca);
+        VISITOR_DEFAULT_IMPL(visitArith);
+        VISITOR_DEFAULT_IMPL(visitStructSet);
+        VISITOR_DEFAULT_IMPL(visitStructGet);
+        VISITOR_DEFAULT_IMPL(visitLoad);
+        VISITOR_DEFAULT_IMPL(visitStore);
+        VISITOR_DEFAULT_IMPL(visitGep);
+        VISITOR_DEFAULT_IMPL(visitPhiNode);
+        VISITOR_DEFAULT_IMPL(visitBitCast);
+        VISITOR_DEFAULT_IMPL(visitSelect);
+        VISITOR_DEFAULT_IMPL(visitFuncCall);
+        VISITOR_DEFAULT_IMPL(visitPktLoad);
+        VISITOR_DEFAULT_IMPL(visitPktStore);
+        VISITOR_DEFAULT_IMPL(visitPktEncap);
+        VISITOR_DEFAULT_IMPL(visitPktDecap);
+        VISITOR_DEFAULT_IMPL(visitUnreachable);
+    
+    #undef VISITOR_DEFAULT_IMPL
+    };
+
+    class BuiltInFunction : public Function {
+    public:
+        BuiltInFunction();
+
+        virtual bool match(const std::string &func_name) const = 0;
+    };
+
+    class BuiltInFunctionStore {
+    public:
+        static BuiltInFunctionStore *get();
+
+        std::shared_ptr<BuiltInFunction> match_builtin(const std::string &fn) const;
+        void register_builtin(std::shared_ptr<BuiltInFunction> f);
+    protected:
+        static std::unique_ptr<BuiltInFunctionStore> instance_;
+
+        std::unordered_set<std::shared_ptr<BuiltInFunction>> functions_;
+    };
+
+    template <typename F>
+    class RegisterBuiltInFunction {
+    public:
+        template<typename ... Args>
+        RegisterBuiltInFunction(Args&& ... args) {
+            // is_base_of : check whether F is son class of BuiltInFunction, return true if yes
+            static_assert(std::is_base_of<BuiltInFunction, F>::value, "Not builtin function type");
+            auto f = std::make_shared<F>(std::forward<Args>(args)...);
+            BuiltInFunctionStore::get() -> register_builtin(f);
+        }
+    };
 }
+
+#define DEF_HIR_BUILTIN_FUNC(NAME)                                             \
+    class NAME : public ::HIR::BuiltInFunction {                                \
+    public:                                                                     \
+        NAME() { name = #NAME; }                                                \
+        virtual bool match (const std::string &func_name) const override;       \
+    }
+
+#define DEF_HIR_BUILT_IN_MATCH(name, fn) bool name::match(const std::string &fn) const
+
+DEF_HIR_BUILTIN_FUNC(PushPktFn);
+DEF_HIR_BUILTIN_FUNC(VectorIdxOp);
+DEF_HIR_BUILTIN_FUNC(HashMapFindp);
+DEF_HIR_BUILTIN_FUNC(HashMapInsert);
+DEF_HIR_BUILTIN_FUNC(ClickJiffieFn);
+DEF_HIR_BUILTIN_FUNC(AssertFailFn);
+
+DEF_HIR_BUILTIN_FUNC(MemcpyFn);
+
+/* packet ops */
+DEF_HIR_BUILTIN_FUNC(PacketHeaderFns);
+DEF_HIR_BUILTIN_FUNC(PacketKillFn);
+
+DEF_HIR_BUILTIN_FUNC(IPFlowIDConstr);
+
+extern HIR::RegisterBuiltInFunction<PushPktFn> PktPushFnReg;
+extern HIR::RegisterBuiltInFunction<VectorIdxOp> VectorIdxOpReg;
+extern HIR::RegisterBuiltInFunction<HashMapFindp> HashMapFindpReg;
+extern HIR::RegisterBuiltInFunction<HashMapInsert> HashMapInsertReg;
+extern HIR::RegisterBuiltInFunction<ClickJiffieFn> ClickJiffieFnReg;
+extern HIR::RegisterBuiltInFunction<AssertFailFn> AssertFailFnReg;
+
+extern HIR::RegisterBuiltInFunction<MemcpyFn> MemcpyFnReg;
+
+extern HIR::RegisterBuiltInFunction<PacketHeaderFns> PacketHeaderFnsReg;
+extern HIR::RegisterBuiltInFunction<PacketKillFn> PacketKillFnReg;
+
+extern HIR::RegisterBuiltInFunction<IPFlowIDConstr> IPFlowIDConstrReg;

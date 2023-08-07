@@ -151,7 +151,7 @@ protected:
 
     size_t n_vertex_;
     std::vector<std::vector<EdgeListEntry>> edgeLists;
-}
+};
 
 template <typename E>
 class AdjacencyMatrix {
@@ -260,7 +260,7 @@ protected:
     size_t edgeIdx(size_t src, size_t dst) const {
         return src * n_vertex_ + dst;
     }
-}
+};
 
 
 //
@@ -398,5 +398,4 @@ protected:
         }
         result.emplace_back(curr);
     }
-
-}
+};
