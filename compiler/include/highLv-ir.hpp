@@ -169,8 +169,11 @@ namespace HIR {
 
         //data for each type
         int bitwidth;
+
         Type *pointee_type;
+
         std::string state_name;
+
         bool is_input_pkt;  // if false the packet is newly created during the execution
 
         struct {
@@ -200,8 +203,13 @@ namespace HIR {
 
         void print(std::ostream &os) const;
 
+        // get bytes of protected member size_, if not set yet.
         size_t num_bytes();
+
+
+        // judge different "Type" object containes bytes or not
         bool sized() const;
+
         void set_size(size_t sz) { size_ = sz; }
 
 
