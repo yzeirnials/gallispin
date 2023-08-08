@@ -3,3 +3,7 @@
 #include "utils.hpp"
 #include "llvm-helpers.hpp"
 #include <queue>
+
+namespace HIR {
+    
+}

@@ -11,6 +11,7 @@ namespace HIR {
         int op_idx;
     };
 
+    // void element_function_builtin(Function &f);
     void element_function_inline(Element &ele);
 
     bool has_side_effect(const Operation &op);
