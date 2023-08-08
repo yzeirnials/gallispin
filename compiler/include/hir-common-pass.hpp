@@ -14,6 +14,7 @@ namespace HIR {
     // void element_function_builtin(Function &f);
     void element_function_inline(Element &ele);
 
+    bool func_has_side_effect(const Operation &op);
     bool has_side_effect(const Operation &op);
 
     void remove_all_meta(Function &f);

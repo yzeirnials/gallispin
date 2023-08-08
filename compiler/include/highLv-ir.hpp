@@ -120,7 +120,7 @@ namespace HIR {
 
         struct BranchEntry {
             bool is_conditional = false;
-            std::shared_ptr <Var> cond_var;
+            std::shared_ptr<Var> cond_var;
             std::weak_ptr<BasicBlock> next_bb;
         };
 
@@ -187,9 +187,16 @@ namespace HIR {
         struct {
             Type *key_t;
             Type *val_t;
-        } map_into;
+        } map_info;
+
+        struct {
+            Type *element_type;
+        } vector_info;
 
         std::string opaque_type_name;
+
+
+        // above is info for different types
 
         void print(std::ostream &os) const;
 
