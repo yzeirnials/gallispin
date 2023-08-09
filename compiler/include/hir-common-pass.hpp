@@ -22,6 +22,7 @@ namespace HIR {
     void update_uses(Function &f);
     void update_uses(Element &ele);
     void remove_unused_ops(Element &ele);
+    void remove_unused_ops(Function &func);
 
     /* BELOW IS THE ORIGINAL COMMENT */
     // find phi-node and select inst regarding to global states
