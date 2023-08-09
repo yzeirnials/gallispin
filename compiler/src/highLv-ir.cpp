@@ -980,7 +980,483 @@ namespace HIR {
         }
     }
 
-    std::string global_state_type_str(Type *t) {}
+    std::string global_state_type_str(Type *t) {
+        std::string result;
+        switch (t - > type)
+        {
+        case Type::T::ARRAY:
+            result = "fix_arr_";
+            break;
+        case Type::T::VECTOR:
+            result = "vector";
+            break;
+        case Type::T::MAP:
+            result = "map";
+            break;
+        default:
+            result = "state";
+            break;
+        }
+        return result;
+    }
 
+    void Element::create_function_placeholder(
+        llvm::Function *f,
+        std::unordered_map< std::string, std::shared_ptr<Function> > &func_mapping
+    ) {
+        auto fn = f -> getName().str();
+        if (func_mapping.find(fn) != func_mapping.end()) {
+            return;
+        }
+
+        auto f_ptr = std::make_shared<Function>();
+        std::string demangled;
+        bool could_demangle = cxx_demangle(fn, demangled);
+        if (could_demangle) {
+            f_ptr->name = demangled;
+        } else {
+            f_ptr->name = fn;
+        }
+
+        func_mapping[fn] = f_ptr;
+        for (auto bb_iter = f->begin(); bb_iter != f->end(); bb_iter++) {
+            const llvm::BasicBlock &bb = *bb_iter;
+            for (auto inst_iter = bb.begin(); inst_iter != bb.end(); inst_iter++) {
+                const llvm::Instruction *i_ptr = &*inst_iter;
+                if (auto call = llvm::dyn_cast<const llvm::CallInst>(i_ptr)) {
+                    const llvm::CallInst &inst = *call;
+                    std::string func_name;
+                    llvm::Function *fp = inst.getCalledFunction();
+                    if (fp==NULL) {
+                        const llvm::Value* v = inst.getCalledValue();
+                        const llvm::Value* sv = v->stripPointerCasts();
+                        llvm::StringRef fname = sv->getName();
+                        llvm::errs() << "placeholder: indirect call? " << fname << "\n";
+                        func_name = fname.str();
+                    } else {
+                        func_name = fp->getName().str();
+                    }
+
+                    // filter out llvm internal functions
+                    if (str_begin_with(func_name, "llvm.dbg.")) {
+                        continue;
+                    } else if (str_begin_with(func_name, "llvm.lifetime.")) {
+                        continue;
+                    }
+
+                    // handle inline asm
+                    if (inst.isInlineAsm()) {
+                        continue;
+                    }
+                    if (is_built_in_function(func_name)) {
+                        continue;
+                    }
+                    create_function_placeholder(fp, func_mapping);
+                }
+            }
+        }
+    }
+
+    Element::Element(
+            // use std::string element_name as key, 
+            // because same function may appear in different module
+            Module &module,
+            const LLVMStore &store,
+            const std::string &element_name
+    ) {
+        // first create call graph, and generate place holder for each function
+        element_name_ = element_name;
+        auto entry_func = store.find_element_entry(element_name);
+        create_function_placeholder(entry_func, module.function_mapping);
+        std::unordered_map<llvm::Type *, std::shared_ptr<Type>> type_mapping;
+
+        // translating functions into High-level IR, ignoring built-in functions
+        int num_entry = 0;
+        for (auto &f_kv : module.function_mapping) {
+            auto &f_name = f_kv.first;
+            if (f_kv.first == entry_func->getName().str()) {
+                entry_func_idx_ = funcs.size();
+                num_entry++;
+            }
+            funcs.emplace_back(f_kv.second);
+            if (f_kv.second->is_built_in) {
+                continue;
+            }
+            auto f_ptr = store.find_function_byname(f_name);
+            assert(f_ptr != nullptr);
+            f_kv.second->translate_from(module, type_mapping, f_ptr);
+        }
+
+        assert(num_entry == 1);
+        auto entry_f = entry();
+        assert(entry_f->arg_types[0]->type == Type::T::POINTER);
+        auto element_type = entry_f->arg_types[0]->pointee_type;
+        assert(element_type->type == Type::T::STRUCT);
+        assert(element_type->struct_info.fields.size() == element_type->struct_info.offsets.size());
+        for (int i = 0; i < element_type->struct_info.fields.size(); i++) {
+            auto ft = element_type->struct_info.fields[i];
+            auto state = std::make_shared<Var>();
+            state->type = ft;
+            state->is_global = true;
+            state->name = global_state_type_str(ft) + "_" + std::to_string(i);
+            state->global_state_idx = i;
+            states.emplace(element_type->struct_info.offsets[i], state);
+        }
+        for (auto &t_kv : type_mapping) {
+            module.types.emplace_back(t_kv.second);
+        }
+        module_ = &module;
+    }
+
+    void Element::print(std::ostream &os) const {
+        for (auto &f : funcs) {
+            f -> print(os);
+            os << std::endl;
+        }
+    }
+
+    void Var::print(std::ostream &os) const {
+        if (is_constant) {
+            os << constant;
+        } else if (is_constant_name) {
+            os << name;
+        } else if (is_undef) {
+            os << "undef";
+        } else {
+            os  << name;
+        }
+    }
+
+    class OperationPrinter : public OperationConstVisitor<OperationPrinter> {
+    public:
+        std::ostream &os_;
+        OperationPrinter(std::ostream &os) : os_(os) {}
+        void printDstVar(const Operation &op) {
+            auto print_var_with_type = [this] (std::shared_ptr<Var> v) {
+                v->type->print(os_);
+                os_ << " ";
+                v->print(os_);
+            };
+            if (op.dst_vars.size() > 0) {
+                print_var_with_type(op.dst_vars[0]);
+                for (int i = 1; i < op.dst_vars.size(); i++) {
+                    os_ << ", ";
+                    print_var_with_type(op.dst_vars[i]);
+                }
+                os_ << " = ";
+            }
+        }
+
+        void visitAlloca(const Operation &op) {
+            printDstVar(op);
+            os_ << "alloca ";
+            op.alloca_type->print(os_);
+        }
+
+        void visitArith(const Operation &op) {
+            printDstVar(op);
+            static std::unordered_map<IntArithType, std::string> int_op_name = {
+                {IntArithType::INT_ADD,   "i-add"},
+                {IntArithType::INT_SUB,   "i-sub"},
+                {IntArithType::INT_MUL,   "i-mul"},
+                {IntArithType::INT_DIV,   "i-div"},
+                {IntArithType::INT_MOD,   "i-mod"},
+                {IntArithType::INT_UDIV,  "i-udiv"},
+                {IntArithType::INT_UMOD,  "i-umod"},
+                {IntArithType::INT_AND,   "i-and"},
+                {IntArithType::INT_OR,    "i-or"},
+                {IntArithType::INT_XOR,   "i-xor"},
+                {IntArithType::INT_SHL,   "i-shl"},
+                {IntArithType::INT_LSHR,  "i-lshr"},
+                {IntArithType::INT_ASHR,  "i-ashr"},
+
+                {IntArithType::INT_TRUNC, "i-trunc"},
+                {IntArithType::INT_ZEXT,  "i-zext"},
+                {IntArithType::INT_SEXT,  "i-sext"},
+            };
+
+            static std::unordered_map<IntCmpType, std::string> cmp_op_name = {
+                {IntCmpType::EQ,  "eq"},
+                {IntCmpType::NE,  "neq"},
+                {IntCmpType::SLE, "sle"},
+                {IntCmpType::SLT, "slt"},
+                {IntCmpType::ULE, "ule"},
+                {IntCmpType::ULT, "ult"},
+            };
+
+            if (op.arith_info.t == ArithType::INT_ARITH) {
+                auto arith_type = op.arith_info.u.iarith_t;
+                assert(int_op_name.find(arith_type) != int_op_name.end());
+                os_ << int_op_name[arith_type];
+            } else if (op.arith_info.t == ArithType::INT_CMP) {
+                auto cmp_type = op.arith_info.u.icmp_t;
+                assert(cmp_op_name.find(cmp_type) != cmp_op_name.end());
+                os_ << cmp_op_name[cmp_type];
+            }
+
+            for (int i = 0; i < op.args.size(); i++) {
+                auto arg = op.args[i];
+                os_ << " ";
+                arg->print(os_);
+            }
+        }
+
+        void visitStructGet(const Operation &op) {
+            printDstVar(op);
+            os_ << "struct-get ";
+            op.args[0]->print(os_);
+            for (auto& off : op.struct_ref_info) {
+                os_ << " " << off;
+            }
+        }
+
+        void visitStructSet(const Operation &op) {
+            os_ << "struct-set ";
+            op.args[0]->print(os_);
+            for (auto& off : op.struct_ref_info) {
+                os_ << " " << off;
+            }
+            os_ << " ";
+            op.args[1]->print(os_);
+        }
+
+        void visitLoad(const Operation &op) {
+            printDstVar(op);
+            os_ << "load ";
+            op.args[0]->print(os_);
+        }
+
+        void visitStore(const Operation &op) {
+            printDstVar(op);
+            os_ << "store ";
+            op.args[0]->print(os_);
+            os_ << " ";
+            op.args[1]->print(os_);
+        }
+
+        void visitGep(const Operation &op) {
+            printDstVar(op);
+            os_ << "getelementptr";
+            for (int i = 0; i < op.args.size(); i++) {
+                os_ << " ";
+                op.args[i]->print(os_);
+            }
+        }
+
+        void visitPhiNode(const Operation &op) {
+            printDstVar(op);
+            os_ << "phi";
+            for (int i = 0; i < op.phi_info.from.size(); i++) {
+                auto from_bb = op.phi_info.from[i].lock();
+                os_ << " (" << from_bb->name << ", ";
+                op.args[i]->print(os_);
+                os_ << ")";
+            }
+        }
+
+        void visitBitCast(const Operation &op) {
+            printDstVar(op);
+            os_ << "bitcast ";
+            op.args[0]->print(os_);
+        }
+
+        void visitSelect(const Operation &op) {
+            printDstVar(op);
+            os_ << "select";
+            for (int i = 0; i < op.args.size(); i++) {
+                os_ << " ";
+                op.args[i]->print(os_);
+            }
+        }
+
+        void visitFuncCall(const Operation &op) {
+            printDstVar(op);
+            os_ << "call ";
+            std::string demangled;
+            bool could_demangle = cxx_demangle(op.call_info.func_name, demangled);
+            if (could_demangle) {
+                os_ << demangled << " ";
+            } else {
+                os_ << op.call_info.func_name << " ";
+            }
+            for (int i = 0; i < op.args.size(); i++) {
+                os_ << " ";
+                op.args[i]->print(os_);
+            }
+        }
+
+        void visitPktLoad(const Operation &op) {
+            printDstVar(op);
+            os_ << "pkt_load "
+                << op.pkt_op_info.header << " "
+                << op.pkt_op_info.field;
+            for (int i = 0; i < op.args.size(); i++) {
+                os_ << " ";
+                op.args[i]->print(os_);
+            }
+        }
+
+        void visitPktStore(const Operation &op) {
+            printDstVar(op);
+            os_ << "pkt_store "
+                << op.pkt_op_info.header << " "
+                << op.pkt_op_info.field;
+            for (int i = 0; i < op.args.size(); i++) {
+                os_ << " ";
+                op.args[i]->print(os_);
+            }
+        }
+
+        void visitPktEncap(const Operation &op) {
+            printDstVar(op);
+            os_ << "pkt_encap "
+                << op.pkt_op_info.header;
+            for (int i = 0; i < op.args.size(); i++) {
+                os_ << " ";
+                op.args[i]->print(os_);
+            }
+        }
+
+        void visitPktDecap(const Operation &op) {
+            printDstVar(op);
+            os_ << "pkt_decap "
+                << op.pkt_op_info.header;
+            for (int i = 0; i < op.args.size(); i++) {
+                os_ << " ";
+                op.args[i]->print(os_);
+            }
+        }
+
+        void visitUnreachable(const Operation &op) {
+            os_ << "unreachable";
+        }
+    };
+
+    void Operation::print(std::ostream &os) const {
+        OperationPrinter printer(os);
+        printer.visit(*this);
+    }
+
+    void Operation::update_uses() {
+        for(auto &a : args) {
+            // skipping constant variables
+            if (!a->is_constant) {
+                Var::Use use;
+                use.type = Var::Use::T::OP;
+                use.u.op_ptr = this;
+                a->uses.emplace_back(use);
+            }
+        }
+    }
+
+    BuiltInFunction::BuiltInFunction() { is_built_in = true; }
+
+    std::unique_ptr<BuiltInFunctionStore> BuiltInFunctionStore::instance_ = nullptr;
+
+    BuiltInFunctionStore *BuiltInFunctionStore::get() {
+        if (instance_ == nullptr) {
+            instance_ = std::make_unique<BuiltInFunctionStore>();
+        }
+        return instance_.get();
+    }
+    std::shared_ptr<BuiltInFunction> BuiltInFunctionStore::match_builtin(const std::string &fn) const {
+        for (auto &f : functions_) {
+            if (f->match(fn)) {
+                return f;
+            }
+        }
+        return nullptr;
+    }
+
+    void BuiltInFunctionStore::register_builtin(std::shared_ptr<BuiltInFunction> f) {
+        functions_.insert(f);
+    }
     
 }
+
+DEF_HIR_BUILTIN_MATCH(PushPktFn, fn) {
+    return fn == "_ZNK7Element19checked_output_pushEiP6Packet";
+}
+
+DEF_HIR_BUILTIN_MATCH(ClickJiffieFn, fn) {
+    return fn == "_Z13click_jiffiesv";
+}
+
+DEF_HIR_BUILTIN_MATCH(VectorIdxOp, func_name) {
+    std::string demangled;
+    bool success = cxx_demangle(func_name, demangled);
+    if (success) {
+        auto base = remove_template(demangled);
+        return str_begin_with(base, "Vector::operator[]");
+    }
+    return false;
+}
+
+DEF_HIR_BUILTIN_MATCH(HashMapFindp, func_name) {
+    std::string demangled;
+    bool success = cxx_demangle(func_name, demangled);
+    if (success) {
+        auto base = remove_template(demangled);
+        return str_begin_with(base, "HashMap::findp");
+    }
+    return false;
+}
+
+DEF_HIR_BUILTIN_MATCH(HashMapInsert, func_name) {
+    std::string demangled;
+    bool success = cxx_demangle(func_name, demangled);
+    if (success) {
+        auto base = remove_template(demangled);
+        return str_begin_with(base, "HashMap::insert");
+    }
+    return false;
+}
+
+DEF_HIR_BUILTIN_MATCH(AssertFailFn, func_name) {
+    return str_begin_with(func_name, "__assert_fail");
+}
+
+DEF_HIR_BUILTIN_MATCH(MemcpyFn, func_name) {
+    return str_begin_with(func_name, "llvm.memcpy");
+}
+
+DEF_HIR_BUILTIN_MATCH(PacketHeaderFns, func_name) {
+    static std::unordered_set<std::string> match_pattern = {
+        "_ZNK6Packet18has_network_headerEv",
+        "_ZNK6Packet16transport_headerEv",
+        "_ZNK14WritablePacket9ip_headerEv",
+        "_ZNK6Packet16transport_lengthEv",
+        "_ZN6Packet9uniqueifyEv",
+    };
+    if (match_pattern.find(func_name) != match_pattern.end()) {
+        return true;
+    }
+    std::string demangled;
+    bool success = cxx_demangle(func_name, demangled);
+    if (success && match_pattern.find(demangled) != match_pattern.end()) {
+        return true;
+    }
+    return false;
+}
+
+DEF_HIR_BUILTIN_MATCH(PacketKillFn, func_name) {
+    return func_name == "_ZN6Packet4killEv";
+}
+
+DEF_HIR_BUILTIN_MATCH(IPFlowIDConstr, func_name) {
+    return func_name == "_ZN8IPFlowIDC1EPK6Packetb";
+}
+
+HIR::RegisterBuiltInFunction<PushPktFn> PktPushFnReg;
+HIR::RegisterBuiltInFunction<VectorIdxOp> VectorIdxOpReg;
+HIR::RegisterBuiltInFunction<HashMapFindp> HashMapFindpReg;
+HIR::RegisterBuiltInFunction<HashMapInsert> HashMapInsertReg;
+HIR::RegisterBuiltInFunction<ClickJiffieFn> ClickJiffieFnReg;
+HIR::RegisterBuiltInFunction<AssertFailFn> AssertFailFnReg;
+
+HIR::RegisterBuiltInFunction<MemcpyFn> MemcpyFnReg;
+
+HIR::RegisterBuiltInFunction<PacketHeaderFns> PacketHeaderFnsReg;
+HIR::RegisterBuiltInFunction<PacketKillFn> PacketKillFnReg;
+
+HIR::RegisterBuiltInFunction<IPFlowIDConstr> IPFlowIDConstrReg;
