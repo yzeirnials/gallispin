@@ -252,6 +252,7 @@ namespace HIR {
         SLT,  // signed less than
 
         // GE & GT seemed to be replace by LE & LT
+        // see op_rev_map
     };
 
     class Var {
