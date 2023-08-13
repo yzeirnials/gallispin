@@ -1,17 +1,17 @@
 cmake_minimum_required(VERSION 2.8)
 project(gallispin-test)
 set(gallispin-test PROJECT_VERSION_MAJOR 0)
-set(gallispin-test PROJECT_VERSION_MINOR 1)
+set(gallispin-test PROJECT_VERSION_MINOR 0)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # package required
 find_package(Boost COMPONENTS filesystem REQUIRED)
 find_package(LLVM REQUIRED CONFIG)
-find_package(Gtest REQUIRED)
+find_package(GTest REQUIRED)
 
 link_directories("/usr/lib" ${Boost_LIBRARY_DIRS})
-include_directories(${Boost_INCLUDE_DIRS})
 
+include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 llvm_map_components_to_libnames(llvm_libs support core irreader)
@@ -54,6 +54,7 @@ foreach(src_file ${EXEC_SRC})
     target_link_libraries(${prog_name} elf)    
 endforeach(src_file ${EXEC_SRC})
 
+enable_testing()
 foreach(src_file ${TEST_SRC})
     get_filename_component(prog_name ${src_file} NAME_WE)
     add_executable(${prog_name} ${src_file})
