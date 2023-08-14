@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/graph.hpp
+cassert
+-
+algorithm
+-
+iostream
+-
+vector
+-
+string
+-
+memory
+-
+optional
+-
+variant
+-
+utility
+-
+unordered_set
+-
+unordered_map
+-
+
+/home/chenyz/gallispin/compiler/test/graph-test.cpp
+graph.hpp
+/home/chenyz/gallispin/compiler/test/graph.hpp
+gtest/gtest.h
+/home/chenyz/gallispin/compiler/test/gtest/gtest.h
+

@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblibgallispin.a  CMakeFiles/libgallispin.dir/src/highLv-ir.cpp.o CMakeFiles/libgallispin.dir/src/hir-common-pass.cpp.o CMakeFiles/libgallispin.dir/src/hir-pktop.cpp.o CMakeFiles/libgallispin.dir/src/hir-stateop.cpp.o CMakeFiles/libgallispin.dir/src/llvm-helpers.cpp.o CMakeFiles/libgallispin.dir/src/llvm-load.cpp.o CMakeFiles/libgallispin.dir/src/pkt-layout.cpp.o CMakeFiles/libgallispin.dir/src/utils.cpp.o
+/usr/bin/ranlib liblibgallispin.a

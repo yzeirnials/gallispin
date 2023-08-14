@@ -1,0 +1,97 @@
+[
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -DBOOST_ALL_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/graph-test.dir/test/graph-test.cpp.o -c /home/chenyz/gallispin/compiler/test/graph-test.cpp",
+  "file": "/home/chenyz/gallispin/compiler/test/graph-test.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -DBOOST_ALL_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/gallispin.dir/exec/gallispin.cpp.o -c /home/chenyz/gallispin/compiler/exec/gallispin.cpp",
+  "file": "/home/chenyz/gallispin/compiler/exec/gallispin.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -DBOOST_ALL_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/example-hir.dir/exec/example-hir.cpp.o -c /home/chenyz/gallispin/compiler/exec/example-hir.cpp",
+  "file": "/home/chenyz/gallispin/compiler/exec/example-hir.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -DBOOST_ALL_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispin.dir/src/highLv-ir.cpp.o -c /home/chenyz/gallispin/compiler/src/highLv-ir.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/highLv-ir.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -DBOOST_ALL_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispin.dir/src/hir-common-pass.cpp.o -c /home/chenyz/gallispin/compiler/src/hir-common-pass.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/hir-common-pass.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -DBOOST_ALL_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispin.dir/src/hir-pktop.cpp.o -c /home/chenyz/gallispin/compiler/src/hir-pktop.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/hir-pktop.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -DBOOST_ALL_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispin.dir/src/hir-stateop.cpp.o -c /home/chenyz/gallispin/compiler/src/hir-stateop.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/hir-stateop.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -DBOOST_ALL_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispin.dir/src/llvm-helpers.cpp.o -c /home/chenyz/gallispin/compiler/src/llvm-helpers.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/llvm-helpers.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -DBOOST_ALL_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispin.dir/src/llvm-load.cpp.o -c /home/chenyz/gallispin/compiler/src/llvm-load.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/llvm-load.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -DBOOST_ALL_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispin.dir/src/pkt-layout.cpp.o -c /home/chenyz/gallispin/compiler/src/pkt-layout.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/pkt-layout.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -DBOOST_ALL_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispin.dir/src/utils.cpp.o -c /home/chenyz/gallispin/compiler/src/utils.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/utils.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -Dlibgallispinso_EXPORTS -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z -fPIC   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispinso.dir/src/highLv-ir.cpp.o -c /home/chenyz/gallispin/compiler/src/highLv-ir.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/highLv-ir.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -Dlibgallispinso_EXPORTS -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z -fPIC   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispinso.dir/src/hir-common-pass.cpp.o -c /home/chenyz/gallispin/compiler/src/hir-common-pass.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/hir-common-pass.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -Dlibgallispinso_EXPORTS -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z -fPIC   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispinso.dir/src/hir-pktop.cpp.o -c /home/chenyz/gallispin/compiler/src/hir-pktop.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/hir-pktop.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -Dlibgallispinso_EXPORTS -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z -fPIC   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispinso.dir/src/hir-stateop.cpp.o -c /home/chenyz/gallispin/compiler/src/hir-stateop.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/hir-stateop.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -Dlibgallispinso_EXPORTS -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z -fPIC   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispinso.dir/src/llvm-helpers.cpp.o -c /home/chenyz/gallispin/compiler/src/llvm-helpers.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/llvm-helpers.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -Dlibgallispinso_EXPORTS -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z -fPIC   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispinso.dir/src/llvm-load.cpp.o -c /home/chenyz/gallispin/compiler/src/llvm-load.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/llvm-load.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -Dlibgallispinso_EXPORTS -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z -fPIC   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispinso.dir/src/pkt-layout.cpp.o -c /home/chenyz/gallispin/compiler/src/pkt-layout.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/pkt-layout.cpp"
+},
+{
+  "directory": "/home/chenyz/gallispin/compiler/build",
+  "command": "/usr/bin/c++  -Dlibgallispinso_EXPORTS -I/usr/lib/llvm-10/include -I/home/chenyz/gallispin/compiler/build -I/home/chenyz/gallispin/compiler/include   -std=c++1z -fPIC   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/libgallispinso.dir/src/utils.cpp.o -c /home/chenyz/gallispin/compiler/src/utils.cpp",
+  "file": "/home/chenyz/gallispin/compiler/src/utils.cpp"
+}
+]
