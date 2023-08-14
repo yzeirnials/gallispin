@@ -7,6 +7,7 @@ HeaderLayout::HeaderLayout(std::string n, std::vector<Entry> fs)
       fields(std::move(fs)) {
 }
 
+// find an Entry with given offset
 std::optional<HeaderLayout::Entry>
 HeaderLayout::FindFieldByOffset(size_t offset) const {
     auto off = 0;
@@ -22,6 +23,7 @@ HeaderLayout::FindFieldByOffset(size_t offset) const {
     return std::nullopt;
 }
 
+// calculate the whole packet size
 size_t HeaderLayout::HeaderSize() const {
     auto sz = 0;
     for (auto &e : fields) {
@@ -41,16 +43,16 @@ namespace CommonHdr {
 
     HeaderLayout ipv4_layout{
         "ipv4_hdr_t",
-        {{"vihl",     1},
-        {"tos",      1},
-        {"tot_len",  2},
-        {"id",       2},
-        {"frag_off", 2},
-        {"ttl",      1},
-        {"protocol", 1},
-        {"check",    2},
-        {"saddr",    4},
-        {"daddr",    4},
+        {{"vihl",     1}, // Version + Header Lenhtj
+        {"tos",      1},  // Type of Service
+        {"tot_len",  2},  // Total Length
+        {"id",       2},  // Identifier
+        {"frag_off", 2},  // Flags + Fragmented Offset
+        {"ttl",      1},  // TTL
+        {"protocol", 1},  // Protocol
+        {"check",    2},  // Header Checksum
+        {"saddr",    4},  // source Addr
+        {"daddr",    4},  // destination Addr
         }
     };
 

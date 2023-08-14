@@ -58,7 +58,7 @@ namespace HIR {
             os << "br";
             for(int i = 0; i < branches.size(); i++ ) {
                 assert(branches[i].is_conditional);
-                os << "（"；
+                os << "（";
                 branches[i].cond_var -> print(os);
                 auto next_bb = branches[i].next_bb.lock();
                 os << ", " << next_bb->name << ")";
@@ -101,7 +101,7 @@ namespace HIR {
             break;
         case T::POINTER :
             pointee_type -> print(os);            
-            os << "*"
+            os << "*";
             break;
         case T::STATE_PTR :
             os << "state-ptr-" << state_name;
@@ -118,10 +118,10 @@ namespace HIR {
             os << "*" << array_info.num_element << "]";
             break;
         case T::ELEMENT_BASE :
-            os << "ElementBase" ;
+            os << "ElementBase";
             break;
         case T::VECTOR :
-            os << "Vector<"
+            os << "Vector<";
             vector_info.element_type -> print(os);
             os << ">";
             break;
@@ -169,7 +169,7 @@ namespace HIR {
         return flag;
     }
 
-    bool Type::num_bytes() {
+    size_t Type::num_bytes() {
         if(size_.has_value()) {
             return *size_;
         }
@@ -225,8 +225,8 @@ namespace HIR {
         llvm::Type *type
     ) {
         auto iter = type_mapping -> find(type);
-        if(iter != type_mapping.end()) {
-            return iter -> second.
+        if(iter != type_mapping -> end()) {
+            return iter -> second;
         }
 
         std::shared_ptr<Type> result = std::make_shared<Type>();
@@ -258,7 +258,7 @@ namespace HIR {
         } 
         else if( type -> isPointerTy() ) {
             result -> type = Type::T::POINTER;
-            result -> pointee_type = llvm_type_to_type(m, my_m, type_mapping, type -> getPointerElementType().get());
+            result -> pointee_type = llvm_type_to_type(m, my_m, type_mapping, type -> getPointerElementType()).get();
         } 
         else if( type -> isStructTy() ) {
             result -> struct_info.struct_name = type -> getStructName().str();
@@ -711,7 +711,7 @@ namespace HIR {
 
     Function::Function(const Function &func) : 
         name(func.name),
-        entry_bb_idx_(func.entry_bb_idx_);
+        entry_bb_idx_(func.entry_bb_idx_),
         arg_types(func.arg_types),
         return_type(func.return_type) 
     {
@@ -839,7 +839,7 @@ namespace HIR {
             arg_types.emplace_back(param_type);
             args.emplace_back(param);
         }
-        return_type = visitor.llvm_type_to_type(func_type -> getReturnType());
+        return_type = visitor.llvm_type_to_type(func_type -> getReturnType()).get();
         assert(arg_iter == llvm_func -> arg_end());
 
         // Step 2 : create dst var placeholder for all instructions
@@ -982,7 +982,7 @@ namespace HIR {
 
     std::string global_state_type_str(Type *t) {
         std::string result;
-        switch (t - > type)
+        switch (t -> type)
         {
         case Type::T::ARRAY:
             result = "fix_arr_";

@@ -260,7 +260,7 @@ namespace HIR {
         for (int i = 0; i < f.bbs.size(); i++) {
             if (f.bbs[i] == entry_bb) {
                 found = true;
-                f.set_entry_idx(i);
+                f.set_entry_bb_idx(i);
             }
         }
         assert(found);
@@ -712,7 +712,7 @@ namespace HIR {
         }
         for (int i = 0; i < f.bbs.size(); i++) {
             if (f.bbs[i] == entry_bb) {
-                f.set_entry_idx(i);
+                f.set_entry_bb_idx(i);
                 break;
             }
         }

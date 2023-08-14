@@ -22,15 +22,14 @@ public:
 
     std::optional<Entry> FindFieldByOffset(size_t offset) const;
     size_t HeaderSize() const;
-}
+};
 
 class PacketLayout {
 public:
     std::unordered_map<std::string, HeaderLayout> headers;
 
     PacketLayout() {}
-    PacketLayout(
-        std::unordered_map<std::string, HeaderLayout> Headers)
+    PacketLayout(std::unordered_map<std::string, HeaderLayout> Headers)
     : headers(std::move(Headers)) {}
 };
 

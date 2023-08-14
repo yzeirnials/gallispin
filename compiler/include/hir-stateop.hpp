@@ -1,4 +1,4 @@
-#pragme once 
+#pragma once 
 
 #include "highLv-ir.hpp"
 #include "hir-common-pass.hpp"

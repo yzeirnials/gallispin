@@ -21,7 +21,7 @@ public:
 protected:
 
     // filename to module mapping
-    std::unordered_map<std::string, std::unique_ptr<llvm::Module>> modules;
+    std::unordered_map<std::string, std::unique_ptr<llvm::Module>> modules_;
 
     // element name (extracted from ::push methods) to file name map
     struct FunctionEntry {

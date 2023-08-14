@@ -178,7 +178,7 @@ namespace HIR {
 
         struct {
             std::string struct_name;
-            std::vector<Type **> fields;
+            std::vector<Type *> fields;
             std::vector<size_t> offsets;
         } struct_info;
 
@@ -224,7 +224,7 @@ namespace HIR {
 
     enum class IntArithType {
         INT_ADD,
-        IND_SUB,
+        INT_SUB,
         INT_MUL,
         INT_DIV,
         INT_MOD,
@@ -319,7 +319,7 @@ namespace HIR {
                 IntArithType iarith_t;
                 IntCmpType icmp_t;
             } u;
-        } arithinfo;
+        } arith_info;
 
         std::vector<int> struct_ref_info {};
 
@@ -384,7 +384,7 @@ namespace HIR {
                 return static_cast<DerivedT *>(this) -> visitAlloca(op);
                 break;
             case T::ARITH:
-                return static_cast<DerivedT *>(this) -> visitARITH(op);
+                return static_cast<DerivedT *>(this) -> visitArith(op);
                 break;
             case T::STRUCT_SET:
                 return static_cast<DerivedT *>(this) -> visitStructSet(op);
@@ -472,7 +472,7 @@ namespace HIR {
                 return static_cast<DerivedT *>(this) -> visitAlloca(op);
                 break;
             case T::ARITH:
-                return static_cast<DerivedT *>(this) -> visitARITH(op);
+                return static_cast<DerivedT *>(this) -> visitArith(op);
                 break;
             case T::STRUCT_SET:
                 return static_cast<DerivedT *>(this) -> visitStructSet(op);
@@ -490,7 +490,7 @@ namespace HIR {
                 return static_cast<DerivedT *>(this) -> visitGep(op);
                 break;
             case T::PHINODE:
-                return static_cast<DerivedT *>(this) -> visitPhinode(op);
+                return static_cast<DerivedT *>(this) -> visitPhiNode(op);
                 break;
             case T::BITCAST:
                 return static_cast<DerivedT *>(this) -> visitBitCast(op);
@@ -589,7 +589,7 @@ namespace HIR {
         virtual bool match (const std::string &func_name) const override;       \
     }
 
-#define DEF_HIR_BUILT_IN_MATCH(name, fn) bool name::match(const std::string &fn) const
+#define DEF_HIR_BUILTIN_MATCH(name, fn) bool name::match(const std::string &fn) const
 
 DEF_HIR_BUILTIN_FUNC(PushPktFn);
 DEF_HIR_BUILTIN_FUNC(VectorIdxOp);

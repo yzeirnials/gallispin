@@ -7,6 +7,8 @@
 
 LLVMStore::LLVMStore() {}
 
+// load ".ll" file
+// update protected member function_ & element_entry_
 void LLVMStore::load_ir_file(const std::string &path){
     auto module = llvm::parseIRFile(path, err_, llvm_ctx_);
 
@@ -47,12 +49,12 @@ void LLVMStore::load_ir_file(const std::string &path){
             std::cerr << "duplicated function definition: " << func_name << std::endl;
         }
         */
-       functions_[func_name]  FunctionEntry{path, &*iter};
+       functions_[funcName] = FunctionEntry{path, &*iter};
 
     }
 }
 
-
+// load directory contains ll file
 void LLVMStore::load_directory(const std::string &path, bool recursive){
     for ( auto &e : boost::filesystem::directory_iterator(path) ){
         if( recursive && boost::filesystem::is_directory(e.status()) ){
@@ -66,14 +68,16 @@ void LLVMStore::load_directory(const std::string &path, bool recursive){
     }
 }
 
+// search among loaded elements
 llvm::Function *LLVMStore::find_element_entry(const std::string &elementName ) const {
     auto iter = element_entry_.find(elementName);
-    if( iter != element_entry.end() ){
+    if( iter != element_entry_.end() ){
         return iter -> second.fn;
     }
     return nullptr;
 }
 
+// search among loaded functions
 llvm::Function *LLVMStore::find_function_byname(const std::string &funcName) const {
     auto iter = functions_.find(funcName);
     if(iter != functions_.end()){
@@ -88,7 +92,8 @@ void LLVMStore::print_all_elements() const {
     }
 }
 
-void LLVMStore::~LLVMStore() {
+// unnecessary cuz using smart ptr
+LLVMStore::~LLVMStore() {
     element_entry_.clear();
     modules_.clear();
 }

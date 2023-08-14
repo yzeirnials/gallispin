@@ -1,4 +1,4 @@
-#include "llvm-helpers.h"
+#include "llvm-helpers.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -7,7 +7,7 @@
 #include <cxxabi.h>
 #include <sstream>
 
-
+// get string representation of an LLVM inst
 std::string get_llvm_inst_str(const llvm::Instruction *inst) {
     std::string res;
     llvm::raw_string_ostream stream{res};
@@ -16,6 +16,7 @@ std::string get_llvm_inst_str(const llvm::Instruction *inst) {
     return res;
 }
 
+// retrives name of a llvm value
 std::string get_llvm_name(const llvm::Value &value){
     std::string res;
     llvm::raw_string_ostream stream{res};
@@ -23,7 +24,8 @@ std::string get_llvm_name(const llvm::Value &value){
     stream.str();
     return res;
 }
-// change arguments name
+
+// turn "type" into string, using ptr as input 
 std::string get_llvm_type_name(const llvm::Type *type){
     std::string res;
     llvm::raw_string_ostream stream{res};
@@ -32,7 +34,8 @@ std::string get_llvm_type_name(const llvm::Type *type){
     return res;
 }
 
-std::string get_llvm_type_str(const llvm::Type *type){
+// turn "type" into string, using reference as input
+std::string get_llvm_type_str(const llvm::Type &type){
     std::string res;
     llvm::raw_string_ostream stream{res};
     type.print(stream);
@@ -40,30 +43,30 @@ std::string get_llvm_type_str(const llvm::Type *type){
     return res;
 }
 
-
-
+// check "value" is a constant e.g. null, true, false, undef or something else
 bool is_llvm_constant(const llvm::Value &value){
     // auto val_name = get_llvm_name(value);
     std::string val_name = get_llvm_name(value);
-    if( val_name == "null" || \
-        val_name == "true" || \
-        val_name == "false"|| \
-        val_name == "undef" || \
-        const llvm::ConstantInt* CI = llvm::dyn_cast<const llvm::ConstantInt>(&value)
-    ){
+    if( val_name == "null" || val_name == "true" || val_name == "false"|| val_name == "undef") 
+    {
+        return true;
+    }
+
+    if(const llvm::ConstantInt* CI = llvm::dyn_cast<const llvm::ConstantInt>(&value)) {
         return true;
     }
 
     return false;
 }
 
+// using 'DataLayout' to get size of type
 uint64_t get_type_size(const llvm::Module *module, llvm::Type *type){
     llvm::DataLayout* dl = new llvm::DataLayout(module);
-    // return the runtime size will be a positive integer multiple of the base size.
+    // return the runtime size, a positive integer multiple of the base size.
     // 5 for i36 and 10 for x86_fp80
     uint64_t type_size = dl->getTypeStoreSize(type);
     delete dl;
-    return typesize;
+    return type_size;
 }
 
 // get an (signed) int64_t from value
@@ -77,6 +80,7 @@ int64_t get_llvm_int_val(const llvm::Value *value){
     throw "not an interger constant";
 }
 
+// check whether the type has no pointer
 bool llvm_contains_no_ptr(llvm::Type *type){
     if( type -> isIntegerTy() ){
         return true;
@@ -92,7 +96,7 @@ bool llvm_contains_no_ptr(llvm::Type *type){
         auto num_elements = struct_type -> getNumElements();
         for(auto i = 0; i < num_elements; i++){
             auto ele_type = struct_type -> getElementType(i);
-            if( ! llvm_contains_no_ptr(ele_type) ){
+            if( !llvm_contains_no_ptr(ele_type) ){
                 return false;
             }
         }
@@ -115,11 +119,12 @@ bool llvm_contains_no_ptr(llvm::Type *type){
     return false;
 }
 
-// input: mods: strcut, array or other single element; type: type pointer
+// recursively flattern a given struct or array and return it 
+// input: module: strcut, array or other single element; type: type pointer
 // output: the sizes of the flattened elements
-std::vector<int> llvm_flattern_struct(const llvm::Module *module, llvm:Type *type){
+std::vector<int> llvm_flattern_struct(const llvm::Module *module, llvm::Type *type){
     std::vector<int> result;
-    if( type -> isStructType() ){
+    if( type -> isStructTy() ){
         auto structType = static_cast<llvm::StructType *>(type);
         auto numEles = structType -> getNumElements();
         for(auto i = 0; i < numEles; i++){
@@ -144,21 +149,24 @@ std::vector<int> llvm_flattern_struct(const llvm::Module *module, llvm:Type *typ
     return result;
 }
 
+// recursively flattern a given struct or array and return it 
+// input: module: strcut, array or other single element; type: type pointer
+// output: the sizes of the flattened elements
 StructLayout llvm_flattern_struct_layout(llvm::Module * module, llvm::Type *type){
     StructLayout result;
     llvm::DataLayout *dl = new llvm::DataLayout(module);
     if ( type -> isStructTy() ){
         const llvm::StructLayout* sl = dl -> getStructLayout(static_cast<llvm::StructType *>(type));
         auto structType = static_cast<llvm::StructType *>(type);
-        auto numEles = structType -> getNumElements();
+        auto numElems = structType -> getNumElements();
         for(auto i = 0; i < numElems; i++){
             auto eleType = structType -> getElementType(i);
             auto segments = llvm_flattern_struct_layout(module, eleType);
             auto off = sl -> getElementOffset(i);
             for(auto seg : segments.fields){
-                StructLayout::fields field;
+                StructLayout::FieldInfo field;
                 field.offset = off;
-                field.size = seg.size();
+                field.size = seg.size;
                 result.fields.push_back(field);
             }
         }
@@ -173,9 +181,9 @@ StructLayout llvm_flattern_struct_layout(llvm::Module * module, llvm::Type *type
             // in my personal opinion, this part could delete the for-loop, 
             // cuz except for field.offset, field.size wont change
             for(auto seg : segments.fields){
-                StructLayout::fields field;
+                StructLayout::FieldInfo field;
                 field.offset = off;
-                field.size = seg.size();
+                field.size = seg.size;
                 result.fields.push_back(field);
             }
         }
@@ -189,11 +197,11 @@ StructLayout llvm_flattern_struct_layout(llvm::Module * module, llvm::Type *type
     return result;
 }
 
-// check definition 
+// demangle
 bool cxx_demangle(const std::string &name, std::string &result){
     size_t size = 0;
     int status = 0;
-    char *n = abi::__cxa_demangle(name.c_str(), NULL, &size, &statusw);
+    char *n = abi::__cxa_demangle(name.c_str(), NULL, &size, &status);
     std::string func_name = "";
     if(n != NULL){
         func_name = std::string(n);
@@ -205,13 +213,12 @@ bool cxx_demangle(const std::string &name, std::string &result){
     }
 }
 
-
+// demangle, if not success, return orignal name
 std::string cxx_try_demangle(const std::string &name){
-    std::string demangled = "":
+    std::string demangled = "";
     if( cxx_demangle(name, demangled) ){
         return demangled;
-    }
-    else {
+    } else {
         return name;
     }
 }
@@ -221,11 +228,11 @@ bool is_template_type(const std::string &type){
     int level = 0;
     bool found = false;
     for( int i = 0; i < type.length(); i++){
-        if(type[i] == "<"){
+        if(type[i] == '<'){
             level ++;
             found = true;
         }
-        if(type[i] == ">"){
+        if(type[i] == '>'){
             level --;
         }
     }
@@ -290,7 +297,7 @@ std::string remove_func_args(const std::string &funcName){
     return result_str;
 }
 
-// 
+// remove parentheses and its contents from a C++ function name
 std::string remove_func_paran(const std::string &funcName){
     auto pos = funcName.find("(");
     if( pos != std::string::npos ){

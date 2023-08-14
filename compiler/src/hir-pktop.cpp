@@ -57,7 +57,7 @@ namespace HIR {
 
     PacketOpInfo pkt_access_trace(
         const PacketLayout &layout,
-        std::unordered_map<std::shared_ptr<Var>, PacketOpInfo &info_cache, 
+        std::unordered_map<std::shared_ptr<Var>, PacketOpInfo> &info_cache, 
         std::shared_ptr<Var> v
     );
 

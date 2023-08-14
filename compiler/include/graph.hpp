@@ -12,12 +12,8 @@
 #include <unordered_set>
 #include <unordered_map>
 
-// EdgeStoreIf: just for reference, not used
-// E: represent weight of edge, could be any type
-// set_edge(): set an directed edge and its weight
-// get_edge(): obtain weight of an undirected edge
-// have_edge(): check whether the given directed edge exists
 
+// EdgeStoreIf: just for reference, not used
 template <typename E>
 class EdgeStoreIf {
 public:
@@ -28,92 +24,90 @@ public:
     bool have_edge(size_t src, size_t dst) const;
 };
 
-
 template <typename E>
-class AdjacencyList{
+class AdjacencyList {
 public:
-    AdjacencyList(int n_vertex) : 
-        n_vertex_(n_vertex), edgeLists(n_vertex) {}
-    
-    void set_edge(size_t src, size_t dst, E&& e){
-        auto opt = get_edge(src, dst);
-        if( !opt.has_value() ) {
-            edgeLists[src].emplace_back(dst, std::move(e));
-        } else {
-            **opt = std::move(e);
-        }
+    AdjacencyList(int n_vertex)
+        : n_vertex_(n_vertex),
+          edge_lists_(n_vertex) {
     }
 
     void set_edge(size_t src, size_t dst, const E& e) {
         auto opt = get_edge(src, dst);
-        if( !opt.has_value() ) {
-            edgeLists[src].emplace_back(dst, e);
+        if (!opt.has_value()) {
+            edge_lists_[src].emplace_back(dst, e);
         } else {
             **opt = e;
         }
     }
 
+    void set_edge(size_t src, size_t dst, E&& e) {
+        auto opt = get_edge(src, dst);
+        if (!opt.has_value()) {
+            edge_lists_[src].emplace_back(dst, std::move(e));
+        } else {
+            **opt = std::move(e);
+        }
+    }
 
-    std::optional<const E*> get_edge(size_t src, size_t dst) const{
-        for ( auto &e : edgeLists[src] ) {
+    std::optional<const E*> get_edge(size_t src, size_t dst) const {
+        for (auto &e : edge_lists_[src]) {
             if (e.dst == dst) {
                 return &e.value;
             }
-        } 
+        }
         return std::nullopt;
     }
 
-    std::optional<E*> get_edge(size_t src, size_t dst){
-        for ( auto &e : edgeLists[src] ) {
+    std::optional<E*> get_edge(size_t src, size_t dst) {
+        for (auto &e : edge_lists_[src]) {
             if (e.dst == dst) {
-                return  &e.value;
+                return &e.value;
             }
         }
         return std::nullopt;
     }
 
     bool have_edge(size_t src, size_t dst) const {
-        for ( auto &e : edgeLists[src] ) {
-            if ( e.dst == dst ) {
+        for (auto &e : edge_lists_[src]) {
+            if (e.dst == dst) {
                 return true;
             }
         }
         return false;
     }
 
-    // class OutEdgeIter:
-    //  iterate over all outgoing edges of the specified node
-    class OutEdgeIter { 
+    class OutEdgeIter {
     public:
-        OutEdgeIter(const AdjacencyList<E> *l, size_t src) : adjLists_(l), src_(src) {}
-        OutEdgeIter(const AdjacencyList<E> *l, size_t src, size_t curr) : 
-            adjLists_(l), src_(src), currIdx_(curr) {}
+        OutEdgeIter(const AdjacencyList<E> *l, size_t src) : adj_list_(l), src_(src) {}
+        OutEdgeIter(const AdjacencyList<E> *l, size_t src, size_t curr)
+            : adj_list_(l), src_(src), curr_idx_(curr) {}
         OutEdgeIter end() {
-            return OutEdgeIter(adjLists_, src_, adjLists_ -> edgeLists[src_].size());
+            return OutEdgeIter(adj_list_, src_, adj_list_->edge_lists_[src_].size());
         }
 
         const E& value() {
-            auto dst = adjLists_ -> edgeLists[src_][currIdx_].dst;
-            return *adjLists_ -> get_edge(src_, dst).value();
+            auto dst  = adj_list_->edge_lists_[src_][curr_idx_].dst;
+            return *adj_list_->get_edge(src_, dst).value();
         }
 
         OutEdgeIter operator++() {
-            if( currIdx_ < adjLists_ -> edgeLists[src_].size() ) {
-                currIdx_ ++;
+            if (curr_idx_ < adj_list_->edge_lists_[src_].size()) {
+                curr_idx_++;
             }
-            return OutEdgeIter(adjLists_, src_, currIdx_);
+            return OutEdgeIter(adj_list_, src_, curr_idx_);
         }
 
         OutEdgeIter operator++(int) {
-            auto old = OutEdgeIter(adjLists_, src_, currIdx_ );
-            if( currIdx_ < adjLists_ -> edgeLists[src_].size() ) {
-                currIdx_ ++;
+            auto old = OutEdgeIter(adj_list_, src_, curr_idx_);
+            if (curr_idx_ < adj_list_->edge_lists_[src_].size()) {
+                curr_idx_++;
             }
             return old;
         }
 
         bool operator==(const OutEdgeIter &o) {
-            return currIdx_ == o.currIdx_ && src_ == o.src_;
+            return curr_idx_ == o.curr_idx_ && src_ == o.src_;
         }
 
         bool operator!=(const OutEdgeIter &o) {
@@ -121,109 +115,106 @@ public:
         }
 
         size_t operator*() {
-            return adjLists_ -> edgeLists[src_][currIdx_].dst;
+            return adj_list_->edge_lists_[src_][curr_idx_].dst;
         }
-
-
     protected:
         size_t src_;
-        size_t currIdx_;
-        const AdjacencyList<E> *adjLists_;
+        size_t curr_idx_;
+        const AdjacencyList<E> *adj_list_;
     };
 
     OutEdgeIter out_edge_begin(size_t src) const {
-        return OutIdgeIter(this, src, 0);
+        return OutEdgeIter(this, src, 0);
     }
 
     OutEdgeIter out_edge_end(size_t src) const {
-        return OutEdgeIter(this, src, edgeLists[src].size());
+        return OutEdgeIter(this, src, edge_lists_[src].size());
     }
-
-
 protected:
-
     class EdgeListEntry {
     public:
         size_t dst;
-        E value;
+        E      value;
         EdgeListEntry(size_t d, E v) : dst(d), value(std::move(v)) {}
     };
 
     size_t n_vertex_;
-    std::vector<std::vector<EdgeListEntry>> edgeLists;
+    std::vector<std::vector<EdgeListEntry>> edge_lists_;
 };
 
 template <typename E>
 class AdjacencyMatrix {
 public:
-    // Matrix was stored in edgeVals with 1-d, use edgeIdx(row, col) to get the true idx
-    AdjacencyMatrix(int n_vertex) :
-        n_vertex_(n_vertex), edgeVals(n_vertex * n_vertex, std::nullopt) {}
-    
-    void set_edge(size_t src, size_t dst, E&& e) {
-        auto idx = edgeIdx(src, dst);
-        edgeVals[idx] = e;
+    AdjacencyMatrix(int n_vertex)
+        : n_vertex_(n_vertex),
+          edge_val_(n_vertex * n_vertex, std::nullopt) {
     }
 
     void set_edge(size_t src, size_t dst, const E& e) {
-        auto idx = edgeIdx(src, dst);
-        edgeVals[idx] = std::move(e);
+        auto idx = edge_idx(src, dst);
+        edge_val_[idx] = e;
     }
 
-    std::optional<E*> get_edge(size_t src, size_t dst) {
-        auto idx = edgeIdx(src, dst);
-        if(edgeVals[idx].has_value()) {
-            return edgeVals[idx].value();
-        } else{
+    void set_edge(size_t src, size_t dst, E&& e) {
+        auto idx = edge_idx(src, dst);
+        edge_val_[idx] = std::move(e);
+    }
+
+    std::optional<const E*> get_edge(size_t src, size_t dst) const {
+        auto idx = edge_idx(src, dst);
+        if (edge_val_[idx].has_value()) {
+            return &edge_val_[idx].value();
+        } else {
             return std::nullopt;
         }
     }
 
-    std::optional<const E*> get_edge(size_t src, size_t dst) const {
-        auto idx = edgeIdx(src, dst);
-        if(edgeVals[idx].has_value()) {
-            return edgeVals[idx].value();
+    std::optional<E*> get_edge(size_t src, size_t dst) {
+        auto idx = edge_idx(src, dst);
+        if (edge_val_[idx].has_value()) {
+            return &edge_val_[idx].value();
         } else {
             return std::nullopt;
         }
     }
 
     bool have_edge(size_t src, size_t dst) const {
-        auto idx = edgeIdx(src, dst);
-        return edgeVals[idx].has_value();
+        auto idx = edge_idx(src, dst);
+        return edge_val_[idx].has_value();
     }
 
-    class OutEdgeIter{
+    class OutEdgeIter {
     public:
-        OutEdgeIter(const AdjacencyMatrix<E> *m, size_t src) : adjMat_(m), src_(src) {} 
-        OutEdgeIter(const AdjacencyMatrix<E> *m, size_t src, size_t curr) : 
-            adjMat_(m), src_(src), currVertex_(curr) {}
+        OutEdgeIter(const AdjacencyMatrix<E> *m, size_t src) : adj_mat_(m), src_(src) {}
+        OutEdgeIter(const AdjacencyMatrix<E> *m, size_t src, size_t curr)
+            : adj_mat_(m), src_(src), curr_vertex_(curr) {}
         OutEdgeIter end() {
-            return OutEdgeIter(adjMat_, src_, adjMat_ -> n_vertex_);
-        } 
+            return OutEdgeIter(adj_mat_, src_, adj_mat_->n_vertex_);
+        }
 
         const E& value() {
-            return *adjMat_ -> get_edge(src_, currVertex_).value();
+            return *adj_mat_->get_edge(src_, curr_vertex_).value();
         }
 
         OutEdgeIter operator++() {
             do {
-                currVertex_ ++;
-            } while (currVertex_ < adjMat_ -> n_vertex_ && !adjMat_ -> have_edge(src_, currVertex_));
-            return OutEdgeIter(adjMat_, src_, currVertex_);
+                curr_vertex_++;
+            } while (curr_vertex_ < adj_mat_->n_vertex_ &&
+                     !adj_mat_->have_edge(src_, curr_vertex_));
+            return OutEdgeIter(adj_mat_, src_, curr_vertex_);
         }
 
-        // the argument "int" seems unused
         OutEdgeIter operator++(int) {
-            auto old = OutEdgeIter(adjMat_, src_, currVertex_);
+            auto old = OutEdgeIter(adj_mat_, src_, curr_vertex_);
             do {
-                currVertex_ ++;
-            } while (currVertex_ < adjMat_ -> n_vertex_ && !adjMat_ -> have_edge(src_, currVertex_));
+                curr_vertex_++;
+            } while (curr_vertex_ < adj_mat_->n_vertex_ &&
+                     !adj_mat_->have_edge(src_, curr_vertex_));
             return old;
         }
 
         bool operator==(const OutEdgeIter &o) {
-            return (currVertex_ == o.currVertex_) && (src_ == o.src_);
+            return curr_vertex_ == o.curr_vertex_ && src_ == o.src_;
         }
 
         bool operator!=(const OutEdgeIter &o) {
@@ -231,20 +222,18 @@ public:
         }
 
         size_t operator*() {
-            return currVertex_;
+            return curr_vertex_;
         }
-
-
     protected:
         size_t src_;
-        size_t currVertex_;
-        const AdjacencyMatrix<E> *adjMat_;
-    }
+        size_t curr_vertex_;
+        const AdjacencyMatrix<E> *adj_mat_;
+    };
 
-    OutEdgeIter out_edge_begin(size_t src) const{
+    OutEdgeIter out_edge_begin(size_t src) const {
         size_t dst = 0;
         while (dst < n_vertex_ && !have_edge(src, dst)) {
-            dst ++;
+            dst++;
         }
         return OutEdgeIter(this, src, dst);
     }
@@ -252,24 +241,22 @@ public:
     OutEdgeIter out_edge_end(size_t src) const {
         return OutEdgeIter(this, src, n_vertex_);
     }
-
 protected:
     size_t n_vertex_;
-    std::vector<std::optional<E>> edgeVals;
+    std::vector<std::optional<E>> edge_val_;
 
-    size_t edgeIdx(size_t src, size_t dst) const {
+    size_t edge_idx(size_t src, size_t dst) const {
         return src * n_vertex_ + dst;
     }
 };
 
-
-//
-// 
+// type of Vertex, type of Edge, type of the Container of Edge(List or Matrix)
 template <typename V, typename E, typename EdgeContainerT=AdjacencyMatrix<E>>
 class Graph {
 public:
-    Graph(std::vector<V> vertices, EdgeContainerT edges) : 
-        vertices_(std::move(vertices)), edges_(std::move(edges)) {}
+    Graph(std::vector<V> vertices, EdgeContainerT edges)
+        : vertices_(std::move(vertices)),
+          edges_(std::move(edges)) {}
 
     size_t n_vertex() const {
         return vertices_.size();
@@ -285,8 +272,8 @@ public:
         return vertices_[vid];
     }
 
-    EdgeContainerT& edges() {return edges_;}
-    const EdgeContainerT& edges() const {return edges_;}
+    EdgeContainerT& edges() { return edges_; }
+    const EdgeContainerT& edges() const { return edges_; }
 
     template <typename VV, typename EE, typename EC>
     friend class Graph;
@@ -295,7 +282,7 @@ public:
         std::vector<bool> visited(vertices_.size(), false);
         std::vector<bool> visiting(vertices_.size(), false);
         for (size_t i = 0; i < vertices_.size(); i++) {
-            if(HasCycleFrom(visited, visiting, i)) {
+            if (HasCycleFrom(visited, visiting, i)) {
                 return false;
             }
         }
@@ -308,30 +295,11 @@ public:
         return HasCycleFrom(visited, visiting, v);
     }
 
-    bool HasCycleFrom(std::vector<bool> &visited, std::vector<bool> &visiting, size_t curr) const {
-        if(visited[curr]) {
-            return false;
-        }
-        if(visiting[curr]) {
-            return true;
-        }
-        visited[curr] = true;
-        visiting[curr] = true;
-        // for( auto iter = edges_.out_edge_begin(curr); iter != iter.end(); iter++ ) {
-        for(auto iter = edges_.out_edge_begin(curr); iter != edges_.out_edge_end(); iter++) { 
-            auto neighbor = *iter;
-            auto found_cycle = HasCycleFrom(visited, visiting, neighbor);
-            if( found_cycle ) { return true; }
-        }
-        visiting[curr] = false;
-        return false;
-    }
-
     std::vector<size_t> TopologicalSort() const {
         assert(IsAcyclic());
         std::vector<bool> visited(vertices_.size(), false);
         std::vector<size_t> order;
-        for(size_t i = 0; i < vertices_.size(); i++) {
+        for (size_t i = 0; i < vertices_.size(); i++) {
             dfs(visited, order, i);
         }
         return order;
@@ -340,62 +308,78 @@ public:
     std::vector<std::vector<size_t>> StronglyConnectedComponents() const {
         std::vector<std::vector<size_t>> scc_list;
 
-
-        // step 1 : DFS
+        // Step 1 : DFS
         std::vector<size_t> dfs_order;
         std::vector<bool> dfs_visited(vertices_.size(), false);
-        for( size_t i = 0; i < vertices_.size(); i++) {
-            dfs(dfs_order, dfs_visited, i);
+        for (size_t i = 0; i < vertices_.size(); i++) {
+            dfs(dfs_visited, dfs_order, i);
         }
 
-        // step 2 : reverse the Graph
-        std::vector<std::monostate> rev_vertices(vertices_.size(), std::monostate());
+        // Step 2 : reverse the graph
+        std::vector<std::monostate> rev_verteices(vertices_.size(), std::monostate());
         AdjacencyList<std::monostate> rev_edges(vertices_.size());
-
-        for(size_t i = 0; i < vertices_.size(); i++) {
-            for(auto iter = edges_.out_edge_begin(); iter != edges_.out_edge_end(); iter++){
-                rev_edges.set_edge(*iter, i, std::monostate()) ;
+        for (size_t i = 0; i < vertices_.size(); i++) {
+            for (auto iter = edges_.out_edge_begin(i); iter != iter.end(); iter++) {
+                rev_edges.set_edge(*iter, i, std::monostate());
             }
         }
         Graph<
             std::monostate,
             std::monostate,
             AdjacencyList<std::monostate>
-        > rev_graph(std::move(rev_vertices), std::move(rev_edges));
+        > rev_graph(std::move(rev_verteices), std::move(rev_edges));
         std::transform(
-            dfs_visited.begin();
-            dfs_visited.end();
             dfs_visited.begin(),
-            [] (bool b) -> bool {return false;}
+            dfs_visited.end(),
+            dfs_visited.begin(),
+            [] (bool b) -> bool { return false; }
         );
 
-        // step 3 : do dfs on reverse graph
-        for( int i = dfs_order.size() - 1; i >= 0; i--) {
+        // Step 3 : do dfs on reverse graph
+        for (int i = dfs_order.size() - 1; i >= 0; i--) {
             std::vector<size_t> scc;
             rev_graph.dfs(dfs_visited, scc, dfs_order[i]);
-            if( scc.size() > 0) {
+            if (scc.size() > 0) {
                 scc_list.emplace_back(std::move(scc));
             }
         }
         return scc_list;
     }
 
-
-
+    bool HasCycleFrom(std::vector<bool> &visited,
+                      std::vector<bool> &visiting,
+                      size_t curr) const {
+        if (visited[curr]) {
+            return false;
+        }
+        if (visiting[curr]) {
+            return true;
+        }
+        visited[curr] = true;
+        visiting[curr] = true;
+        for (auto iter = edges_.out_edge_begin(curr); iter != iter.end(); iter++) {
+            auto neighbor = *iter;
+            auto found_cycle = HasCycleFrom(visited, visiting, neighbor);
+            if (found_cycle) { return true; }
+        }
+        visiting[curr] = false;
+        return false;
+    }
 protected:
     std::vector<V> vertices_;
     EdgeContainerT edges_;
 
-    void dfs(std::vector<bool> &visited, std::vector<size_t> &result, size_t curr){
-        if(visited[curr]) {
+    void dfs(std::vector<bool> &visited,
+             std::vector<size_t> &result,
+             size_t curr) const {
+        if (visited[curr]) {
             return;
         }
-
         visited[curr] = true;
-        // for(auto iter = edges_.out_edge_begin(curr); iter != iter.end(); iter++){
-        for(auto iter = edges_.out_edge_begin(curr); iter != edges_.out_edge_end(); iter++) {
+        for (auto iter = edges_.out_edge_begin(curr); iter != iter.end(); iter++) {
             dfs(visited, result, *iter);
         }
         result.emplace_back(curr);
     }
 };
+

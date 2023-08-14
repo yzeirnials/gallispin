@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
     store.load_directory("../../click-llvm-ir/lib_ll");
 
     auto m = std::make_shared<HIR::Module>();
-    auto ele = std::make_shared<HIR::element>(*m, store, "MyIPRewriter");
+    auto ele = std::make_shared<HIR::Element>(*m, store, "MyIPRewriter");
     element_function_inline(*ele);
     replace_packet_access_op(*ele, CommonHdr::default_layout);
     remove_unused_phi_entry(*ele->entry());
