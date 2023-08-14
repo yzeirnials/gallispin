@@ -12,6 +12,8 @@ NameFactory& NameFactory::get() {
     return *NameFactory::instance_;
 }
 
+// generate uniquename according to base_name
+// by adding underline and an integter "cnt" (request counts)
 std::string NameFactory::GetUniqueName(const std::string &base_name) {
   std::lock_guard<std::mutex> lg(name_map_mutex_);
   if (name_map_.find(base_name) == name_map_.end()) {

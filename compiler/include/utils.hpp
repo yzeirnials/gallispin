@@ -6,6 +6,7 @@
 #include <mutex>
 
 class NameFactory {
+  // store name(string), appearance_count(u64)
   std::unordered_map<std::string, uint64_t> name_map_;
   std::mutex name_map_mutex_;
 
