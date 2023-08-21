@@ -2,7 +2,6 @@
 
 #include "llvm-incl.hpp"
 #include "llvm-load.hpp"
-
 #include <cassert>
 #include <vector>
 #include <optional>
@@ -13,13 +12,17 @@
 #include <utility>
 #include <type_traits>
 
+/* first define the click configuration (simply a directed graph) */
+
 namespace HIR {
-    /* first */
-    struct ConfExpr {};
-    
+
+    struct ConfExpr {
+    };
+
+
     class Element;
 
-    /* second */
+    /* instance of a element */
     class ElementInstance {
     public:
         std::string name;
@@ -45,6 +48,7 @@ namespace HIR {
         std::shared_ptr<Type> get_int_type(int bitwidth);
     };
 
+
     class BasicBlock;
     class Var;
     class Operation;
@@ -52,28 +56,31 @@ namespace HIR {
     class Function : std::enable_shared_from_this<Function> {
     public:
         std::string name;
-        std::vector<std::shared_ptr<BasicBlock>> bbs;  // basic implement unit
-        std::vector<std::shared_ptr<Function>> called_functions;  // other function called
-        std::vector<std::shared_ptr<Type>> arg_types;  
+        // basic implement unit
+        std::vector<std::shared_ptr<BasicBlock>> bbs;
+        // other function called
+        std::vector<std::weak_ptr<Function>> called_functions;
+        std::vector<std::shared_ptr<Type>> arg_types;
         std::vector<std::shared_ptr<Var>> args;
         Type *return_type = nullptr;
 
         Function () {}
         Function (const Function &func);
+
         int entry_bb_idx() const { return entry_bb_idx_; }
-        void set_entry_bb_idx(int idx) { entry_bb_idx_ = idx; }
+        void set_entry_idx(int idx) { entry_bb_idx_ = idx; }
 
         void translate_from(
-            Module &module,
-            std::unordered_map< llvm::Type *, std::shared_ptr<Type> > &type_mapping,
-            llvm::Function *llvm_func
-        );
+                Module &module,
+                std::unordered_map<
+                    llvm::Type *,
+                    std::shared_ptr<Type>>& type_mapping,
+                llvm::Function *llvm_func);
         bool is_built_in = false;
 
-        using OpPrinterT = std::function<void(std::ostream &os, const Operation &op)>;
-        void print(std::ostream &os, OpPrinterT op_printer) const;
-        void print(std::ostream &os) const;
-
+        using OpPrinterT = std::function<void(std::ostream& os, const Operation& op)>;
+        void print(std::ostream& os, OpPrinterT op_printer) const;
+        void print(std::ostream& os) const;
     protected:
         int entry_bb_idx_;
     };
@@ -102,7 +109,6 @@ namespace HIR {
         std::string name() const { return element_name_; }
 
         Module *module() const { return module_; }
-
     protected:
         int entry_func_idx_;
         std::string element_name_;
@@ -110,8 +116,9 @@ namespace HIR {
 
         void create_function_placeholder(
             llvm::Function *f,
-            std::unordered_map< std::string, std::shared_ptr<Function> > &func_mapping
-        );
+            std::unordered_map<
+                std::string,
+                std::shared_ptr<Function>> &func_mapping);
     };
 
     class BasicBlock : std::enable_shared_from_this<BasicBlock> {
@@ -127,10 +134,9 @@ namespace HIR {
         bool is_return = false;
         bool is_short_circuit = false;
         bool is_err = false;
-
         std::vector<BranchEntry> branches;
         std::weak_ptr<BasicBlock> default_next_bb;
-        Function *parent;
+        Function* parent;
 
         std::shared_ptr<Var> return_val;
 
@@ -141,14 +147,12 @@ namespace HIR {
         void print_branching(std::ostream &os) const;
 
         void append_operation(std::shared_ptr<Operation> op);
-
         void update_uses();
-
     };
 
     class Type {
     public:
-        // warning: opaque may be deprecated since llvm-12
+        // warning: opaque may be deprecated since LLVM-12
         enum class T {
             UNDEF,
             VOID,
@@ -167,21 +171,21 @@ namespace HIR {
 
         T type;
 
-        //data for each type
+        // data for each type
         int bitwidth;
 
         Type *pointee_type;
 
         std::string state_name;
 
-        bool is_input_pkt;  // if false the packet is newly created during the execution
-
+        bool is_input_pkt; // if false the packet is newly created during the execution
+        
         struct {
             std::string struct_name;
             std::vector<Type *> fields;
             std::vector<size_t> offsets;
         } struct_info;
-
+        
         struct {
             uint64_t num_element;
             Type *element_type;
@@ -198,20 +202,17 @@ namespace HIR {
 
         std::string opaque_type_name;
 
-
         // above is info for different types
 
-        void print(std::ostream &os) const;
 
+        void print(std::ostream &os) const;
+        
         // get bytes of protected member size_, if not set yet.
         size_t num_bytes();
 
-
         // judge different "Type" object containes bytes or not
         bool sized() const;
-
         void set_size(size_t sz) { size_ = sz; }
-
 
     protected:
         std::optional<size_t> size_ = std::nullopt;
@@ -241,17 +242,17 @@ namespace HIR {
         INT_TRUNC,
         INT_ZEXT,
         INT_SEXT,
-    } ;
+    };
 
     enum class IntCmpType {
-        EQ,   // equal
-        NE,   // not equal
-        ULE,  // unsigned less than or equal
-        ULT,  // unsigned less than
-        SLE,  // signed less than or equal
-        SLT,  // signed less than
+        EQ, // equal
+        NE, // not equal
+        ULE, // unsigned less than or equal
+        ULT, // unsigned less than
+        SLE, // signed less than or equal
+        SLT, // signed less than
 
-        // GE & GT seemed to be replace by LE & LT
+        // we will replace GE & GT with LE & LT
         // see op_rev_map
     };
 
@@ -277,7 +278,6 @@ namespace HIR {
                 BB_COND,
             };
             T type;
-
             union {
                 Operation *op_ptr;
                 BasicBlock *bb_ptr;
@@ -286,7 +286,6 @@ namespace HIR {
         std::vector<Use> uses;
 
         void print(std::ostream &os) const;
-
     };
 
     /* the high level IR is similar to LLVM IR */
@@ -321,8 +320,7 @@ namespace HIR {
             } u;
         } arith_info;
 
-        std::vector<int> struct_ref_info {};
-
+        std::vector<int> struct_ref_info{};
         bool struct_set_have_writeback = false;
 
         Type *alloca_type;
@@ -332,17 +330,17 @@ namespace HIR {
 
         struct {
             bool is_built_in_func = false;
-            std::string func_name ;
+            std::string func_name;
             std::weak_ptr<Function> called_function;
         } call_info;
 
-        struct  {
+        struct {
             std::string header;
             std::string field;
-        } pkt_op_info ;
+        } pkt_op_info;
 
         std::vector<std::shared_ptr<Var>> args;
-        BasicBlock *parent;
+        BasicBlock* parent;
 
         T type;
 
@@ -375,68 +373,67 @@ namespace HIR {
 
     // DerivedT: type of the derived visitor
     // RetT: Return Type of the visitor function
-    template<typename DerivedT, typename RetT=void>
-    class OperationVisitor{
+    template <typename DerivedT, typename RetT=void>
+    class OperationVisitor {
     public:
         RetT visit(Operation &op) {
             using T = Operation::T;
             switch (op.type) {
-            case T::ALLOCA:
-                return static_cast<DerivedT *>(this) -> visitAlloca(op);
-                break;
-            case T::ARITH:
-                return static_cast<DerivedT *>(this) -> visitArith(op);
-                break;
-            case T::STRUCT_SET:
-                return static_cast<DerivedT *>(this) -> visitStructSet(op);
-                break;
-            case T::STRUCT_GET:
-                return static_cast<DerivedT *>(this) -> visitStructGet(op);
-                break;
-            case T::LOAD:
-                return static_cast<DerivedT *>(this) -> visitLoad(op);
-                break;
-            case T::STORE:
-                return static_cast<DerivedT *>(this) -> visitStore(op);
-                break;
-            case T::GEP:
-                return static_cast<DerivedT *>(this) -> visitGep(op);
-                break;
-            case T::PHINODE:
-                return static_cast<DerivedT *>(this) -> visitPhinode(op);
-                break;
-            case T::BITCAST:
-                return static_cast<DerivedT *>(this) -> visitBitCast(op);
-                break;
-            case T::SELECT:
-                return static_cast<DerivedT *>(this) -> visitSelect(op);
-                break;
-            case T::FUNC_CALL:
-                return static_cast<DerivedT *>(this) -> visitFuncCall(op);
-                break;
-            case T::PKT_HDR_LOAD:
-                return static_cast<DerivedT *>(this) -> visitPktLoad(op);
-                break;
-            case T::PKT_HDR_STORE:
-                return static_cast<DerivedT *>(this) -> visitPktStore(op);
-                break;
-            case T::PKT_ENCAP:
-                return static_cast<DerivedT *>(this) -> visitPktEncap(op);
-                break;
-            case T::PKT_DECAP:
-                return static_cast<DerivedT *>(this) -> visitPktDecap(op);
-                break;    
-            case T::UNREACHABLE:
-                return static_cast<DerivedT *>(this) -> visitUnreachable(op);
-                break;
+                case T::ALLOCA:
+                    return static_cast<DerivedT *>(this)->visitAlloca(op);
+                    break;
+                case T::ARITH:
+                    return static_cast<DerivedT *>(this)->visitArith(op);
+                    break;
+                case T::STRUCT_SET:
+                    return static_cast<DerivedT *>(this)->visitStructSet(op);
+                    break;
+                case T::STRUCT_GET:
+                    return static_cast<DerivedT *>(this)->visitStructGet(op);
+                    break;
+                case T::LOAD:
+                    return static_cast<DerivedT *>(this)->visitLoad(op);
+                    break;
+                case T::STORE:
+                    return static_cast<DerivedT *>(this)->visitStore(op);
+                    break;
+                case T::GEP:
+                    return static_cast<DerivedT *>(this)->visitGep(op);
+                    break;
+                case T::BITCAST:
+                    return static_cast<DerivedT *>(this)->visitBitCast(op);
+                    break;
+                case T::PHINODE:
+                    return static_cast<DerivedT *>(this)->visitPhiNode(op);
+                    break;
+                case T::SELECT:
+                    return static_cast<DerivedT *>(this)->visitSelect(op);
+                    break;
+                case T::FUNC_CALL:
+                    return static_cast<DerivedT *>(this)->visitFuncCall(op);
+                    break;
+                case T::PKT_HDR_LOAD:
+                    return static_cast<DerivedT *>(this)->visitPktLoad(op);
+                    break;
+                case T::PKT_HDR_STORE:
+                    return static_cast<DerivedT *>(this)->visitPktStore(op);
+                    break;
+                case T::PKT_ENCAP:
+                    return static_cast<DerivedT *>(this)->visitPktEncap(op);
+                    break;
+                case T::PKT_DECAP:
+                    return static_cast<DerivedT *>(this)->visitPktDecap(op);
+                    break;
+                case T::UNREACHABLE:
+                    return static_cast<DerivedT *>(this)->visitUnreachable(op);
+                    break;
             }
-            assert(false && "unreachable");
+            assert(false && "unreachalbe");
         }
- 
     protected:
-    #define VISITOR_DEFAULT_IMPL(fn)                                        \
-        RetT fn(Operation &op) {                                            \
-            return static_cast<DerivedT *>(this) -> visitDefault(op);       \
+#define VISITOR_DEFAULT_IMPL(fn)                                    \
+        RetT fn(Operation &op) {                                    \
+            return static_cast<DerivedT *>(this)->visitDefault(op); \
         }
 
         RetT visitDefault(Operation &op) {
@@ -459,72 +456,71 @@ namespace HIR {
         VISITOR_DEFAULT_IMPL(visitPktEncap);
         VISITOR_DEFAULT_IMPL(visitPktDecap);
         VISITOR_DEFAULT_IMPL(visitUnreachable);
-    
-    #undef VISITOR_DEFAULT_IMPL
+
+#undef VISITOR_DEFAULT_IMPL
     };
 
-    template<typename DerivedT, typename RetT=void>
-    class OperationConstVisitor{
+    template <typename DerivedT, typename RetT=void>
+    class OperationConstVisitor {
     public:
         RetT visit(const Operation &op) {
             using T = Operation::T;
             switch (op.type) {
-            case T::ALLOCA:
-                return static_cast<DerivedT *>(this) -> visitAlloca(op);
-                break;
-            case T::ARITH:
-                return static_cast<DerivedT *>(this) -> visitArith(op);
-                break;
-            case T::STRUCT_SET:
-                return static_cast<DerivedT *>(this) -> visitStructSet(op);
-                break;
-            case T::STRUCT_GET:
-                return static_cast<DerivedT *>(this) -> visitStructGet(op);
-                break;
-            case T::LOAD:
-                return static_cast<DerivedT *>(this) -> visitLoad(op);
-                break;
-            case T::STORE:
-                return static_cast<DerivedT *>(this) -> visitStore(op);
-                break;
-            case T::GEP:
-                return static_cast<DerivedT *>(this) -> visitGep(op);
-                break;
-            case T::PHINODE:
-                return static_cast<DerivedT *>(this) -> visitPhiNode(op);
-                break;
-            case T::BITCAST:
-                return static_cast<DerivedT *>(this) -> visitBitCast(op);
-                break;
-            case T::SELECT:
-                return static_cast<DerivedT *>(this) -> visitSelect(op);
-                break;
-            case T::FUNC_CALL:
-                return static_cast<DerivedT *>(this) -> visitFuncCall(op);
-                break;
-            case T::PKT_HDR_LOAD:
-                return static_cast<DerivedT *>(this) -> visitPktLoad(op);
-                break;
-            case T::PKT_HDR_STORE:
-                return static_cast<DerivedT *>(this) -> visitPktStore(op);
-                break;
-            case T::PKT_ENCAP:
-                return static_cast<DerivedT *>(this) -> visitPktEncap(op);
-                break;
-            case T::PKT_DECAP:
-                return static_cast<DerivedT *>(this) -> visitPktDecap(op);
-                break;    
-            case T::UNREACHABLE:
-                return static_cast<DerivedT *>(this) -> visitUnreachable(op);
-                break;
+                case T::ALLOCA:
+                    return static_cast<DerivedT *>(this)->visitAlloca(op);
+                    break;
+                case T::ARITH:
+                    return static_cast<DerivedT *>(this)->visitArith(op);
+                    break;
+                case T::STRUCT_SET:
+                    return static_cast<DerivedT *>(this)->visitStructSet(op);
+                    break;
+                case T::STRUCT_GET:
+                    return static_cast<DerivedT *>(this)->visitStructGet(op);
+                    break;
+                case T::LOAD:
+                    return static_cast<DerivedT *>(this)->visitLoad(op);
+                    break;
+                case T::STORE:
+                    return static_cast<DerivedT *>(this)->visitStore(op);
+                    break;
+                case T::GEP:
+                    return static_cast<DerivedT *>(this)->visitGep(op);
+                    break;
+                case T::BITCAST:
+                    return static_cast<DerivedT *>(this)->visitBitCast(op);
+                    break;
+                case T::PHINODE:
+                    return static_cast<DerivedT *>(this)->visitPhiNode(op);
+                    break;
+                case T::SELECT:
+                    return static_cast<DerivedT *>(this)->visitSelect(op);
+                    break;
+                case T::FUNC_CALL:
+                    return static_cast<DerivedT *>(this)->visitFuncCall(op);
+                    break;
+                case T::PKT_HDR_LOAD:
+                    return static_cast<DerivedT *>(this)->visitPktLoad(op);
+                    break;
+                case T::PKT_HDR_STORE:
+                    return static_cast<DerivedT *>(this)->visitPktStore(op);
+                    break;
+                case T::PKT_ENCAP:
+                    return static_cast<DerivedT *>(this)->visitPktEncap(op);
+                    break;
+                case T::PKT_DECAP:
+                    return static_cast<DerivedT *>(this)->visitPktDecap(op);
+                    break;
+                case T::UNREACHABLE:
+                    return static_cast<DerivedT *>(this)->visitUnreachable(op);
+                    break;
             }
-            assert(false && "unreachable");
+            assert(false && "unreachalbe");
         }
- 
     protected:
-    #define VISITOR_DEFAULT_IMPL(fn)                                        \
-        RetT fn(const Operation &op) {                                      \
-            return static_cast<DerivedT *>(this) -> visitDefault(op);       \
+#define VISITOR_DEFAULT_IMPL(fn)                                    \
+        RetT fn(const Operation &op) {                              \
+            return static_cast<DerivedT *>(this)->visitDefault(op); \
         }
 
         RetT visitDefault(const Operation &op) {
@@ -547,8 +543,8 @@ namespace HIR {
         VISITOR_DEFAULT_IMPL(visitPktEncap);
         VISITOR_DEFAULT_IMPL(visitPktDecap);
         VISITOR_DEFAULT_IMPL(visitUnreachable);
-    
-    #undef VISITOR_DEFAULT_IMPL
+
+#undef VISITOR_DEFAULT_IMPL
     };
 
     class BuiltInFunction : public Function {
@@ -573,21 +569,22 @@ namespace HIR {
     template <typename F>
     class RegisterBuiltInFunction {
     public:
-        template<typename ... Args>
-        RegisterBuiltInFunction(Args&& ... args) {
+        template<typename... Args>
+        RegisterBuiltInFunction(Args&&... args) {
             // is_base_of : check whether F is son class of BuiltInFunction, return true if yes
-            static_assert(std::is_base_of<BuiltInFunction, F>::value, "Not builtin function type");
+            static_assert(std::is_base_of<BuiltInFunction, F>::value,
+                          "Not builtin function type");
             auto f = std::make_shared<F>(std::forward<Args>(args)...);
-            BuiltInFunctionStore::get() -> register_builtin(f);
+            BuiltInFunctionStore::get()->register_builtin(f);
         }
     };
 }
 
-#define DEF_HIR_BUILTIN_FUNC(NAME)                                             \
-    class NAME : public ::HIR::BuiltInFunction {                                \
-    public:                                                                     \
-        NAME() { name = #NAME; }                                                \
-        virtual bool match (const std::string &func_name) const override;       \
+#define DEF_HIR_BUILTIN_FUNC(NAME)                                       \
+    class NAME : public ::HIR::BuiltInFunction {                         \
+    public:                                                              \
+        NAME() { name = #NAME; }                                         \
+        virtual bool match(const std::string &func_name) const override; \
     }
 
 #define DEF_HIR_BUILTIN_MATCH(name, fn) bool name::match(const std::string &fn) const

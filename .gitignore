@@ -1,1 +1,4 @@
 .vscode/
+compiler/build/
+compiler/debug/
+build/

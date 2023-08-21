@@ -3,17 +3,15 @@
 #include "llvm-helpers.hpp"
 #include "utils.hpp"
 #include "graph.hpp"
-
-#include<iostream>
-#include<queue>
-#include<optional>
-#include<memory>
+#include <iostream>
+#include <queue>
+#include <optional>
 
 namespace HIR {
     bool is_built_in_function(const std::string &func_name) {
-        auto f = BuiltInFunctionStore::get() -> match_builtin(func_name);
+        auto f = BuiltInFunctionStore::get()->match_builtin(func_name);
         return f != nullptr;
-    }   
+    }
 
     bool is_opaque_type(llvm::Type *t) {
         static std::vector<std::string> opaque_type_prefix = {
@@ -21,270 +19,250 @@ namespace HIR {
         };
 
         auto type_str = get_llvm_type_name(t);
-        for(auto &prefix : opaque_type_prefix) {
-            if(str_begin_with(type_str, prefix)) {
+        for (auto &prefix : opaque_type_prefix) {
+            if (str_begin_with(type_str, prefix)) {
                 return true;
             }
         }
 
-        if(t -> isStructTy() ) {
+        if (t->isStructTy()) {
             auto st = llvm::dyn_cast<llvm::StructType>(t);
             assert(st != nullptr);
-            return st -> isOpaque();
+            return st->isOpaque();
         }
-
         return false;
     }
 
     std::shared_ptr<Type> Module::get_int_type(int bitwidth) {
-        if( int_types.find(bitwidth) == int_types.end() ) {
+        if (int_types.find(bitwidth) == int_types.end()) {
             auto t = std::make_shared<Type>();
-            t -> type = Type::T::INT;
-            t -> bitwidth = bitwidth;
+            t->type = Type::T::INT;
+            t->bitwidth = bitwidth;
             int_types[bitwidth] = t;
         }
         return int_types[bitwidth];
     }
 
     void BasicBlock::print_branching(std::ostream &os) const {
-        if(is_return) {
-            if( is_short_circuit ) {
-                os << "direct";
+        if (is_return) {
+            if (is_short_circuit) {
+                os << "direct ";
             }
             os << "return";
-        } else if(is_err) {
-            os << "error!" ;
-        } else {   // branch
-            os << "br";
-            for(int i = 0; i < branches.size(); i++ ) {
+        } else if (is_err) {
+            os << "error!";
+        } else {
+            os << "br"; // branch
+            for (int i = 0; i < branches.size(); i++) {
                 assert(branches[i].is_conditional);
-                os << "（";
-                branches[i].cond_var -> print(os);
+                os << " (";
+                branches[i].cond_var->print(os);
                 auto next_bb = branches[i].next_bb.lock();
                 os << ", " << next_bb->name << ")";
             }
             auto default_next_bb_ptr = default_next_bb.lock();
-            os << " " << default_next_bb_ptr -> name;
+            os << " " << default_next_bb_ptr->name;
         }
     }
 
     void BasicBlock::append_operation(std::shared_ptr<Operation> op) {
         ops.emplace_back(op);
-        op -> parent = this;
+        op->parent = this;
     }
 
-
     void BasicBlock::update_uses() {
-        for(auto &e : branches) {
-            if(e.is_conditional) {
+        for (auto &e : branches) {
+            if (e.is_conditional) {
                 Var::Use use;
                 use.type = Var::Use::T::BB_COND;
                 use.u.bb_ptr = this;
-                e.cond_var -> uses.emplace_back(use);
+                e.cond_var->uses.emplace_back(use);
             }
         }
     }
 
     void Type::print(std::ostream &os) const {
         switch (type) {
-        case T::UNDEF :
-            // nothing to print for "UNDEF"
+        case T::UNDEF:
+            // print nothing for undef
             break;
-        case T::VOID :
-            os << "void" ;
+        case T::VOID:
+            os << "void";
             break;
-        case T::INT :
+        case T::INT:
             os << "i" << bitwidth;
             break;
-        case T::FLOAT :
+        case T::FLOAT:
             os << "f" << bitwidth;
             break;
-        case T::POINTER :
-            pointee_type -> print(os);            
+        case T::POINTER:
+            pointee_type->print(os);
             os << "*";
             break;
-        case T::STATE_PTR :
+        case T::STATE_PTR:
             os << "state-ptr-" << state_name;
             break;
-        case T::PACKET :
+        case T::PACKET:
             os << "Packet";
             break;
-        case T::STRUCT :
+        case T::STRUCT:
             os << struct_info.struct_name;
             break;
-        case T::ARRAY :
+        case T::ARRAY:
             os << "[";
-            array_info.element_type -> print(os);
-            os << "*" << array_info.num_element << "]";
+            array_info.element_type->print(os);
+            os << " * " << array_info.num_element << "]";
             break;
-        case T::ELEMENT_BASE :
+        case T::ELEMENT_BASE:
             os << "ElementBase";
             break;
-        case T::VECTOR :
+        case T::VECTOR:
             os << "Vector<";
-            vector_info.element_type -> print(os);
+            vector_info.element_type->print(os);
             os << ">";
             break;
-        case T::MAP :
+        case T::MAP:
             os << "Map<";
-            map_info.key_t -> print(os);
-            os << ",";
-            map_info.val_t -> print(os);
+            map_info.key_t->print(os);
+            os << ", ";
+            map_info.val_t->print(os);
             os << ">";
             break;
         // warning: OPAQUE could be deprecated since LLVM-12
-        case T::OPAQUE :
-            os << "opaque<" << opaque_type_name << ">";
+        case T::OPAQUE:
+            os << "opaque<"
+               << opaque_type_name
+               << ">";
             break;
         }
     }
 
     bool Type::sized() const {
-        bool flag = false;
+        bool ret = false;
         switch (type) {
-        case T::UNDEF  :
-        case T::VOID  :
+        case T::UNDEF:
+        case T::VOID:
             break;
-        case T::INT  :
-        case T::FLOAT  :
-        case T::POINTER  :
-            flag = true;
+        case T::INT:
+        case T::FLOAT:
+        case T::POINTER:
+            ret = true;
             break;
-        case T::STATE_PTR  :
+        case T::STATE_PTR:
             break;
-        case T::PACKET  :
-        case T::STRUCT  :
-        case T::ARRAY  :
-            flag = true;
+        case T::PACKET:
+        case T::STRUCT:
+        case T::ARRAY:
+            ret = true;
             break;
-        case T::ELEMENT_BASE  :
-        case T::VECTOR  :
-        case T::MAP  :
-        case T::OPAQUE  :
+        case T::ELEMENT_BASE:
+        case T::VECTOR:
+        case T::MAP:
+        case T::OPAQUE:
             break;
         default:
             assert(false && "unknown Type type");
-            break;
         }
-        return flag;
+        return ret;
     }
 
     size_t Type::num_bytes() {
-        if(size_.has_value()) {
+        if (size_.has_value()) {
             return *size_;
         }
 
         switch (type) {
-        case T::UNDEF :
-        case T::VOID :
+        case T::UNDEF:
+        case T::VOID:
             size_ = 0;
             break;
-        case T::INT :
-        case T::FLOAT :
+        case T::INT:
+        case T::FLOAT:
             assert(bitwidth % 8 == 0);
             size_ = bitwidth / 8;
             break;
-        case T::POINTER :
+        case T::POINTER:
             size_ = 8;
             break;
-        case T::STATE_PTR :
+        case T::STATE_PTR:
             size_ = 0;
             break;
-        case T::PACKET :
+        case T::PACKET:
             size_ = 0;
             break;
-        case T::STRUCT :
+        case T::STRUCT:
             assert(false && "size of struct should be manually set");
             break;
-        case T::ARRAY :
-            size_ = array_info.element_type -> num_bytes() * array_info.num_element;
+        case T::ARRAY:
+            size_ = array_info.element_type->num_bytes() * array_info.num_element;
             break;
-        case T::ELEMENT_BASE :
+        case T::ELEMENT_BASE:
             size_ = 0;
             break;
-        case T::VECTOR :
+        case T::VECTOR:
             size_ = 0;
             break;
-        case T::MAP :
+        case T::MAP:
             size_ = 0;
             break;
         // warning: OPAQUE could be deprecated since LLVM-12
-        case T::OPAQUE :
+        case T::OPAQUE:
             size_ = 0;
             break;
         }
-
         assert(size_.has_value());
         return *size_;
     }
 
     std::shared_ptr<Type> llvm_type_to_type(
-        llvm::Module *m,
-        Module* my_m,
-        std::unordered_map<llvm::Type *, std::shared_ptr<Type>> *type_mapping,
-        llvm::Type *type
-    ) {
-        auto iter = type_mapping -> find(type);
-        if(iter != type_mapping -> end()) {
-            return iter -> second;
+            llvm::Module *m,
+            Module* my_m,
+            std::unordered_map<llvm::Type *, std::shared_ptr<Type>> *type_mapping,
+            llvm::Type *type) {
+        auto iter = type_mapping->find(type);
+        if (iter != type_mapping->end()) {
+            return iter->second;
         }
 
         std::shared_ptr<Type> result = std::make_shared<Type>();
         (*type_mapping)[type] = result;
         auto type_str = get_llvm_type_name(type);
-
-        if( is_opaque_type(type) ) {
-            result -> type = Type::T::OPAQUE;
-            result -> opaque_type_name = type_str;
-        } 
-        else if( type -> isVoidTy() ) {
-            result -> type = Type::T::VOID;
-        } 
-        else if( type -> isIntegerTy() ) {
-            auto bw = type -> getIntegerBitWidth();
-            result = my_m -> get_int_type(bw);
+        if (is_opaque_type(type)) {
+            result->type = Type::T::OPAQUE;
+            result->opaque_type_name = type_str;
+        } else if (type->isVoidTy()) {
+            result->type = Type::T::VOID;
+        } else if (type->isIntegerTy()) {
+            auto bw = type->getIntegerBitWidth();
+            result = my_m->get_int_type(bw);
             (*type_mapping)[type] = result;
-
-        } 
-        else if( type -> isFloatingPointTy() ) {
-            assert(false && "TODO: support FloatingPoint");
-        } 
-        else if( type -> isArrayTy() ) {
-            result -> type = Type::T::ARRAY;
-            auto ele_t = llvm_type_to_type(m, my_m, type_mapping, type -> getArrayElementType());
-            auto n_element = type -> getArrayNumElements();
-            result -> array_info.num_element = n_element;
-            result -> array_info.element_type = ele_t.get();
-        } 
-        else if( type -> isPointerTy() ) {
-            result -> type = Type::T::POINTER;
-            result -> pointee_type = llvm_type_to_type(m, my_m, type_mapping, type -> getPointerElementType()).get();
-        } 
-        else if( type -> isStructTy() ) {
-            result -> struct_info.struct_name = type -> getStructName().str();
-            if(str_begin_with(type_str, "&class.Element")) {
-                result -> type = Type::T::ELEMENT_BASE;
+        } else if (type->isFloatingPointTy()) {
+            assert(false && "FP");
+        } else if (type->isStructTy()) {
+            result->struct_info.struct_name = type->getStructName().str();
+            if (str_begin_with(type_str, "%class.Element")) {
+                result->type = Type::T::ELEMENT_BASE;
             } else if (str_begin_with(type_str, "%class.Packet")) {
-                result -> type = Type::T::PACKET;
+                result->type = Type::T::PACKET;
             } else if (str_begin_with(type_str, "%class.WritablePacket")) {
-                result -> type = Type::T::PACKET;
+                result->type = Type::T::PACKET;
             } else if (str_begin_with(type_str, "%class.Vector")) {
-                result -> type = Type::T::VECTOR;
-                auto vec_ptr = type -> getStructElementType(0) -> getStructElementType(0);
-                auto vec_ele = vec_ptr -> getPointerElementType();
-                result -> vector_info.element_type = llvm_type_to_type(m, my_m, type_mapping, vec_ele).get();
+                result->type = Type::T::VECTOR;
+                auto vec_ptr = type->getStructElementType(0)->getStructElementType(0);
+                auto vec_ele = vec_ptr->getPointerElementType();
+                result->vector_info.element_type = llvm_type_to_type(m, my_m, type_mapping, vec_ele).get();
             } else if (str_begin_with(type_str, "%class.HashMap")) {
-                result -> type = Type::T::MAP;
-                auto bucket_p = type -> getStructElementType(0) -> getPointerElementType();
-                auto bucket_t = bucket_p -> getPointerElementType();
-                auto pair_t = bucket_t -> getStructElementType(0);
-                auto kt = pair_t -> getStructElementType(0);
-                auto vt = pair_t -> getStructElementType(1);
-                result -> map_info.key_t = llvm_type_to_type(m, my_m, type_mapping, kt).get();
-                result -> map_info.val_t = llvm_type_to_type(m, my_m, type_mapping, vt).get();
+                result->type = Type::T::MAP;
+                auto bucket_p = type->getStructElementType(0)->getPointerElementType();
+                auto bucket_t = bucket_p->getPointerElementType();
+                auto pair_t = bucket_t->getStructElementType(0);
+                auto kt = pair_t->getStructElementType(0);
+                auto vt = pair_t->getStructElementType(1);
+                result->map_info.key_t = llvm_type_to_type(m, my_m, type_mapping, kt).get();
+                result->map_info.val_t = llvm_type_to_type(m, my_m, type_mapping, vt).get();
             } else {
-                result -> type = Type::T::STRUCT;
-                auto dl = m -> getDataLayout();
+                result->type = Type::T::STRUCT;
+                auto dl = m->getDataLayout();
                 auto st = llvm::dyn_cast<llvm::StructType>(type);
                 assert(st != nullptr);
                 auto sl = dl.getStructLayout(st);
@@ -295,8 +273,16 @@ namespace HIR {
                 }
                 result->set_size(dl.getTypeStoreSize(type));
             }
-        } 
-        else {
+        } else if (type->isArrayTy()) {
+            result->type = Type::T::ARRAY;
+            auto ele_t = llvm_type_to_type(m, my_m, type_mapping, type->getArrayElementType());
+            auto n_element = type->getArrayNumElements();
+            result->array_info.element_type = ele_t.get();
+            result->array_info.num_element = n_element;
+        } else if (type->isPointerTy()) {
+            result->type = Type::T::POINTER;
+            result->pointee_type = llvm_type_to_type(m, my_m, type_mapping, type->getPointerElementType()).get();
+        } else {
             assert(false && "not supported llvm type");
         }
 
@@ -305,10 +291,8 @@ namespace HIR {
 
     class BBTranslateVisitor : public llvm::InstVisitor<BBTranslateVisitor> {
     public:
-        BBTranslateVisitor() {}
-
         BasicBlock *bb;
-        Module *m_ptr;
+        Module* m_ptr;
         llvm::Module *llvm_module;
 
         std::unordered_map<llvm::BasicBlock *, int> *bb_idx_mapping;
@@ -316,6 +300,8 @@ namespace HIR {
         std::vector<std::shared_ptr<BasicBlock>> *bb_list;
         std::unordered_map<llvm::Value *, std::shared_ptr<Var>> var_mapping;
         std::unordered_map<llvm::Type *, std::shared_ptr<Type>> *type_mapping;
+
+        BBTranslateVisitor() {}
 
         std::string get_llvm_name(const llvm::Value &value) {
             std::string res;
@@ -332,6 +318,7 @@ namespace HIR {
         std::shared_ptr<Var> get_var_from_value(llvm::Value *val_ptr) {
             auto iter = var_mapping.find(val_ptr);
             if (iter == var_mapping.end()) {
+                // check if this is a constant
                 if (auto ci = llvm::dyn_cast<llvm::ConstantInt>(val_ptr)) {
                     auto t = val_ptr->getType();
                     auto v = std::make_shared<Var>();
@@ -340,8 +327,7 @@ namespace HIR {
                     v->constant = ci->getZExtValue();
                     var_mapping[val_ptr] = v;
                     iter = var_mapping.find(val_ptr);
-                } 
-                else if (auto undef = llvm::dyn_cast<llvm::UndefValue>(val_ptr)) {
+                } else if (auto undef = llvm::dyn_cast<llvm::UndefValue>(val_ptr)) {
                     auto v = std::make_shared<Var>();
                     v->type = llvm_type_to_type(val_ptr->getType()).get();
                     v->is_constant = true;
@@ -349,25 +335,23 @@ namespace HIR {
                     v->constant = 0;
                     var_mapping[val_ptr] = v;
                     iter = var_mapping.find(val_ptr);
-                } 
-                else if (auto undef = llvm::dyn_cast<llvm::ConstantPointerNull>(val_ptr)) {
+                } else if (auto undef = llvm::dyn_cast<llvm::ConstantPointerNull>(val_ptr)) {
                     auto v = std::make_shared<Var>();
                     v->type = llvm_type_to_type(val_ptr->getType()).get();
                     v->is_constant = true;
                     v->constant = 0;
                     var_mapping[val_ptr] = v;
                     iter = var_mapping.find(val_ptr);
-                }
-                else if(auto cfp = llvm::dyn_cast<llvm::ConstantFP>(val_ptr)) {
+                } else if (auto cfp = llvm::dyn_cast<llvm::ConstantFP>(val_ptr)) {
                     assert(false && "TODO: support constant floating point");
                 }
-            } 
+            }
             assert(iter != var_mapping.end());
-            return iter -> second;
+            return iter->second;
         }
 
         std::shared_ptr<BasicBlock> bb_lookup(llvm::BasicBlock *bb) {
-            auto iter = bb_idx_mapping -> find(bb);
+            auto iter = bb_idx_mapping->find(bb);
             assert(iter != bb_idx_mapping->end());
             auto idx = iter->second;
             assert(0 <= idx && idx < bb_list->size());
@@ -382,7 +366,6 @@ namespace HIR {
             }
         }
 
-        // error Inst
         void visitInstruction(llvm::Instruction &inst) {
             inst.print(llvm::errs());
             llvm::errs() << "\n";
@@ -399,21 +382,17 @@ namespace HIR {
                 {P::ICMP_SLE, IntCmpType::SLE},
                 {P::ICMP_SLT, IntCmpType::SLT},
             };
-
-            // GE -> LE
             static std::unordered_map<llvm::CmpInst::Predicate, llvm::CmpInst::Predicate> op_rev_map = {
                 {P::ICMP_UGE, P::ICMP_ULE},
                 {P::ICMP_UGT, P::ICMP_ULT},
                 {P::ICMP_SGE, P::ICMP_SLE},
                 {P::ICMP_SGT, P::ICMP_SLT},
             };
-
             auto op = std::make_shared<Operation>();
             op->type = Operation::T::ARITH;
             op->arith_info.t = ArithType::INT_CMP;
             op->args.emplace_back(get_var_from_value(inst.getOperand(0)));
             op->args.emplace_back(get_var_from_value(inst.getOperand(1)));
-
             auto opcode = inst.getPredicate();
             if (op_rev_map.find(opcode) != op_rev_map.end()) {
                 // swap the args
@@ -428,7 +407,7 @@ namespace HIR {
             set_op_dst(inst, op);
         }
 
-        void visitAllocaInst(llvm::AllocaInst &inst) { 
+        void visitAllocaInst(llvm::AllocaInst &inst) {
             assert(inst.isStaticAlloca());
             auto op = std::make_shared<Operation>();
             op->type = Operation::T::ALLOCA;
@@ -709,27 +688,25 @@ namespace HIR {
         }
     };
 
-    Function::Function(const Function &func) : 
-        name(func.name),
-        entry_bb_idx_(func.entry_bb_idx_),
-        arg_types(func.arg_types),
-        return_type(func.return_type) 
-    {
+    Function::Function(const Function &func)
+        : name(func.name),
+          entry_bb_idx_(func.entry_bb_idx_),
+          arg_types(func.arg_types),
+          return_type(func.return_type) {
         std::unordered_map<Var *, std::shared_ptr<Var>> var_mapping;
         std::unordered_map<BasicBlock *, std::shared_ptr<BasicBlock>> bb_mapping;
-
         // first params
-        for(auto &a : func.args) {
+        for (auto& a : func.args) {
             auto new_arg = std::make_shared<Var>(*a);
-            new_arg -> uses.clear();
+            new_arg->uses.clear();
             assert(var_mapping.find(a.get()) == var_mapping.end());
             var_mapping[a.get()] = new_arg;
             args.emplace_back(new_arg);
         }
 
-        for(auto &bb : func.bbs) {
-            for(auto &op : bb -> ops) {
-                for(auto &dst : op -> dst_vars){
+        for (auto& bb : func.bbs) {
+            for (auto& op : bb->ops) {
+                for (auto &dst : op->dst_vars) {
                     assert(var_mapping.find(dst.get()) == var_mapping.end());
                     auto new_dst = std::make_shared<Var>(*dst);
                     new_dst->uses.clear();
@@ -744,28 +721,26 @@ namespace HIR {
             bbs.emplace_back(new_bb);
         }
 
-        for(auto &bb : func.bbs) {
+        for (auto& bb : func.bbs) {
             assert(bb_mapping.find(bb.get()) != bb_mapping.end());
             auto bb_copy = bb_mapping[bb.get()];
-
-            for(auto &op : bb -> ops) {
+            for (auto& op : bb->ops) {
                 auto new_op = std::make_shared<Operation>(*op);
                 new_op->parent = bb_copy.get();
                 new_op->dst_vars.clear();
                 new_op->args.clear();
-                for(auto &v : op -> dst_vars) {
+                for (auto &v : op->dst_vars) {
                     assert(var_mapping.find(v.get()) != var_mapping.end());
-                    new_op -> dst_vars.emplace_back(var_mapping[v.get()]);
+                    new_op->dst_vars.emplace_back(var_mapping[v.get()]);
                 }
-                for(auto &v : op -> args){
-                    if(v -> is_param || v -> is_constant || v -> is_global || v -> is_undef) {
-                        new_op -> args.emplace_back(v);
+                for (auto &v : op->args) {
+                    if (v->is_param || v->is_constant || v->is_global || v->is_undef) {
+                        new_op->args.emplace_back(v);
                     } else {
                         assert(var_mapping.find(v.get()) != var_mapping.end());
                         new_op->args.emplace_back(var_mapping[v.get()]);
                     }
                 }
-
                 assert(op->dst_vars.size() == new_op->dst_vars.size());
                 assert(op->args.size() == new_op->args.size());
                 if (op->type == Operation::T::PHINODE) {
@@ -779,7 +754,6 @@ namespace HIR {
                 }
                 bb_copy->append_operation(new_op);
             }
-
             // copy branching
             for (auto& e : bb->branches) {
                 BasicBlock::BranchEntry new_e;
@@ -803,10 +777,11 @@ namespace HIR {
     }
 
     void Function::translate_from(
-        Module &module,
-        std::unordered_map<llvm::Type *, std::shared_ptr<Type>> &type_mapping,
-        llvm::Function *llvm_func
-    ) {
+            Module& module,
+            std::unordered_map<
+                llvm::Type *,
+                std::shared_ptr<Type>>& type_mapping,
+            llvm::Function* llvm_func) {
         std::unordered_map<llvm::BasicBlock *, int> bb_idx_mapping;
         for (auto bb_iter = llvm_func->begin(); bb_iter != llvm_func->end(); bb_iter++) {
             auto bb = std::make_shared<BasicBlock>();
@@ -816,7 +791,7 @@ namespace HIR {
             bb->parent = this;
         }
 
-        // generating our BasicBlock type
+        // now start generating our BasicBlock type
         BBTranslateVisitor visitor;
         visitor.m_ptr = &module;
         visitor.bb_list = &bbs;
@@ -825,12 +800,12 @@ namespace HIR {
         visitor.type_mapping = &type_mapping;
         visitor.llvm_module = llvm_func->getParent();
 
-        // Step 1 : create var_mapping for function parameters
+        // STEP 1 : create var_mapping for function parameters
         auto func_type = llvm_func->getFunctionType();
         auto arg_iter = llvm_func->arg_begin();
-        for(int i = 0; i < func_type -> getNumParams(); i++) {
+        for (int i = 0; i < func_type->getNumParams(); i++) {
+            auto param_type = visitor.llvm_type_to_type(func_type->getParamType(i));
             auto param = std::make_shared<Var>();
-            auto param_type = visitor.llvm_type_to_type(func_type -> getParamType(i));
             param->name = "_arg_" + std::to_string(i);
             param->type = param_type.get();
             param->is_param = true;
@@ -839,10 +814,10 @@ namespace HIR {
             arg_types.emplace_back(param_type);
             args.emplace_back(param);
         }
-        return_type = visitor.llvm_type_to_type(func_type -> getReturnType()).get();
-        assert(arg_iter == llvm_func -> arg_end());
+        return_type = visitor.llvm_type_to_type(func_type->getReturnType()).get();
+        assert(arg_iter == llvm_func->arg_end());
 
-        // Step 2 : create dst var placeholder for all instructions
+        // STEP 2 : create dst var placeholder for all instructions
         for (auto &kv : bb_idx_mapping) {
             auto &bb = bbs[kv.second];
             visitor.bb = bb.get();
@@ -871,7 +846,7 @@ namespace HIR {
             }
         }
 
-        // step 4 : update the uses array for each var
+        // STEP 3 : update the uses array for each var
         for (auto &bb : bbs) {
             for (auto &op : bb->ops) {
                 op->update_uses();
@@ -886,20 +861,12 @@ namespace HIR {
         entry_bb_idx_ = bb_idx_mapping[&llvm_func->getEntryBlock()];
     }
 
-    void Function::print(std::ostream &os) const {
-        OpPrinterT printer = [](std::ostream &os, const Operation &op) -> void {
-            op.print(os);
-        };
-
-        print(os, printer);
-    }
-
-    void Function::print(std::ostream &os, OpPrinterT op_printer) const {
+    void Function::print(std::ostream& os, OpPrinterT op_printer) const {
         std::unordered_set<BasicBlock *> enqueued;
         std::queue<BasicBlock *> q;
         os << "function " << name << " : " << std::endl;
 
-        // create BasicBlock control graph
+        // create basic block control graph
         std::unordered_map<BasicBlock *, int> bb_idx_mapping;
         for (int i = 0; i < bbs.size(); i++) {
             bb_idx_mapping[bbs[i].get()] = i;
@@ -924,10 +891,10 @@ namespace HIR {
             AdjacencyList<std::monostate>
         > control_graph(bbs, std::move(control_edges));
 
-        // get scc of the graph
+        // Get SCC of the graph
         auto scc_list = control_graph.StronglyConnectedComponents();
 
-        // create mew graph where each scc is a single vertex
+        // Create new graph where each scc is a single vertex
         std::vector<std::monostate> scc_graph_vertices(scc_list.size(), std::monostate());
         AdjacencyList<std::monostate> scc_edges(scc_list.size());
         std::unordered_map<int, int> idx2sccidx;
@@ -980,18 +947,25 @@ namespace HIR {
         }
     }
 
-    std::string global_state_type_str(Type *t) {
+    void Function::print(std::ostream& os) const {
+        OpPrinterT printer = [](std::ostream& os, const Operation& op) -> void {
+            op.print(os);
+        };
+
+        print(os, printer);
+    }
+
+    std::string global_state_type_str(Type* t) {
         std::string result;
-        switch (t -> type)
-        {
+        switch (t->type) {
         case Type::T::ARRAY:
-            result = "fix_arr_";
-            break;
-        case Type::T::VECTOR:
-            result = "vector";
+            result = "fix_arr";
             break;
         case Type::T::MAP:
             result = "map";
+            break;
+        case Type::T::VECTOR:
+            result = "vector";
             break;
         default:
             result = "state";
@@ -1000,15 +974,66 @@ namespace HIR {
         return result;
     }
 
-    void Element::create_function_placeholder(
-        llvm::Function *f,
-        std::unordered_map< std::string, std::shared_ptr<Function> > &func_mapping
+    Element::Element(
+        // use string as key because same function may appear in different module
+        Module &module, 
+        const LLVMStore &store, 
+        const std::string &element_name
     ) {
-        auto fn = f -> getName().str();
+        // first create call graph, and generate place holder for each function
+        element_name_ = element_name;
+        auto entry_func = store.find_element_entry(element_name);
+        create_function_placeholder(entry_func, module.function_mapping);
+        std::unordered_map<llvm::Type *, std::shared_ptr<Type>> type_mapping;
+
+        // translating functions into High-level IR, ignoring built in functions
+        int num_entry = 0;
+        for (auto &f_kv : module.function_mapping) {
+            auto &f_name = f_kv.first;
+            if (f_kv.first == entry_func->getName().str()) {
+                entry_func_idx_ = funcs.size();
+                num_entry++;
+            }
+            funcs.emplace_back(f_kv.second);
+            if (f_kv.second->is_built_in) {
+                continue;
+            }
+            auto f_ptr = store.find_function_byname(f_name);
+            assert(f_ptr != nullptr);
+            f_kv.second->translate_from(module, type_mapping, f_ptr);
+        }
+
+        assert(num_entry == 1);
+
+        auto entry_f = entry();
+        assert(entry_f->arg_types[0]->type == Type::T::POINTER);
+        auto element_type = entry_f->arg_types[0]->pointee_type;
+        assert(element_type->type == Type::T::STRUCT);
+        assert(element_type->struct_info.fields.size() == element_type->struct_info.offsets.size());
+        for (int i = 0; i < element_type->struct_info.fields.size(); i++) {
+            auto ft = element_type->struct_info.fields[i];
+            auto state = std::make_shared<Var>();
+            state->type = ft;
+            state->is_global = true;
+            state->name = global_state_type_str(ft) + "_" + std::to_string(i);
+            state->global_state_idx = i;
+            states.emplace(element_type->struct_info.offsets[i], state);
+        }
+        for (auto &t_kv : type_mapping) {
+            module.types.emplace_back(t_kv.second);
+        }
+        module_ = &module;
+    }
+
+    void Element::create_function_placeholder(
+            llvm::Function *f,
+            std::unordered_map<
+                std::string,
+                std::shared_ptr<Function>> &func_mapping) {
+        auto fn = f->getName().str();
         if (func_mapping.find(fn) != func_mapping.end()) {
             return;
         }
-
         auto f_ptr = std::make_shared<Function>();
         std::string demangled;
         bool could_demangle = cxx_demangle(fn, demangled);
@@ -1017,7 +1042,6 @@ namespace HIR {
         } else {
             f_ptr->name = fn;
         }
-
         func_mapping[fn] = f_ptr;
         for (auto bb_iter = f->begin(); bb_iter != f->end(); bb_iter++) {
             const llvm::BasicBlock &bb = *bb_iter;
@@ -1057,60 +1081,9 @@ namespace HIR {
         }
     }
 
-    Element::Element(
-            // use std::string element_name as key, 
-            // because same function may appear in different module
-            Module &module,
-            const LLVMStore &store,
-            const std::string &element_name
-    ) {
-        // first create call graph, and generate place holder for each function
-        element_name_ = element_name;
-        auto entry_func = store.find_element_entry(element_name);
-        create_function_placeholder(entry_func, module.function_mapping);
-        std::unordered_map<llvm::Type *, std::shared_ptr<Type>> type_mapping;
-
-        // translating functions into High-level IR, ignoring built-in functions
-        int num_entry = 0;
-        for (auto &f_kv : module.function_mapping) {
-            auto &f_name = f_kv.first;
-            if (f_kv.first == entry_func->getName().str()) {
-                entry_func_idx_ = funcs.size();
-                num_entry++;
-            }
-            funcs.emplace_back(f_kv.second);
-            if (f_kv.second->is_built_in) {
-                continue;
-            }
-            auto f_ptr = store.find_function_byname(f_name);
-            assert(f_ptr != nullptr);
-            f_kv.second->translate_from(module, type_mapping, f_ptr);
-        }
-
-        assert(num_entry == 1);
-        auto entry_f = entry();
-        assert(entry_f->arg_types[0]->type == Type::T::POINTER);
-        auto element_type = entry_f->arg_types[0]->pointee_type;
-        assert(element_type->type == Type::T::STRUCT);
-        assert(element_type->struct_info.fields.size() == element_type->struct_info.offsets.size());
-        for (int i = 0; i < element_type->struct_info.fields.size(); i++) {
-            auto ft = element_type->struct_info.fields[i];
-            auto state = std::make_shared<Var>();
-            state->type = ft;
-            state->is_global = true;
-            state->name = global_state_type_str(ft) + "_" + std::to_string(i);
-            state->global_state_idx = i;
-            states.emplace(element_type->struct_info.offsets[i], state);
-        }
-        for (auto &t_kv : type_mapping) {
-            module.types.emplace_back(t_kv.second);
-        }
-        module_ = &module;
-    }
-
     void Element::print(std::ostream &os) const {
         for (auto &f : funcs) {
-            f -> print(os);
+            f->print(os);
             os << std::endl;
         }
     }
@@ -1131,6 +1104,7 @@ namespace HIR {
     public:
         std::ostream &os_;
         OperationPrinter(std::ostream &os) : os_(os) {}
+
         void printDstVar(const Operation &op) {
             auto print_var_with_type = [this] (std::shared_ptr<Var> v) {
                 v->type->print(os_);
@@ -1338,7 +1312,7 @@ namespace HIR {
     }
 
     void Operation::update_uses() {
-        for(auto &a : args) {
+        for (auto &a : args) {
             // skipping constant variables
             if (!a->is_constant) {
                 Var::Use use;
@@ -1371,7 +1345,6 @@ namespace HIR {
     void BuiltInFunctionStore::register_builtin(std::shared_ptr<BuiltInFunction> f) {
         functions_.insert(f);
     }
-    
 }
 
 DEF_HIR_BUILTIN_MATCH(PushPktFn, fn) {

@@ -3,45 +3,43 @@
 #include "utils.hpp"
 #include "llvm-helpers.hpp"
 #include <queue>
-
 namespace HIR {
-    void remove_all_meta(Function &f) {
-        for(auto &bb : f.bbs) {
-            for(auto &op : bb->ops) {
+    void remove_all_meta(Function& f) {
+        for (auto &bb : f.bbs) {
+            for (auto &op : bb->ops) {
                 op->set_meta<void>(nullptr);
             }
         }
     }
 
     void remove_all_meta(Element &ele) {
-        for(auto &f : ele.funcs) {
-            for(auto &bb : f->bbs) {
-                for(auto &op : bb -> ops) {
+        for (auto &f : ele.funcs) {
+            for (auto &bb : f->bbs) {
+                for (auto &op : bb->ops) {
                     op->set_meta<void>(nullptr);
                 }
             }
         }
     }
 
-    void update_uses(Function &f) {
-        for(auto &bb : f.bbs) {
-            for(auto &op : bb->ops) {
-                for(auto &d : op -> dst_vars) {
-                    d -> src_op = op;
-                    d -> uses.clear();
+    void update_uses(Function& f) {
+        for (auto& bb : f.bbs) {
+            for (auto &op : bb->ops) {
+                for (auto &d : op->dst_vars) {
+                    d->src_op = op;
+                    d->uses.clear();
                 }
-                for(auto &a : op -> args) {
-                    a -> uses.clear();
+                for (auto &a : op->args) {
+                    a->uses.clear();
                 }
             }
         }
-
-        for(auto &bb : f.bbs) {
-            for(auto &op : bb -> ops) {
-                op -> update_uses();
+        for (auto& bb : f.bbs) {
+            for (auto &op : bb->ops) {
+                op->update_uses();
             }
-            bb -> parent = &f;
-            bb -> update_uses();
+            bb->parent = &f;
+            bb->update_uses();
         }
     }
 
@@ -51,6 +49,47 @@ namespace HIR {
         }
     }
 
+    bool func_has_side_effect(const Operation &op) {
+        bool ret = true;
+        auto &func = op.call_info.called_function;
+        auto &fn = op.call_info.func_name;
+        std::string demangled_fn;
+        bool could_demangle = cxx_demangle(fn, demangled_fn);
+
+        if (could_demangle) {
+            if (demangled_fn == "WritablePacket::ip_header() const"
+                || demangled_fn == "Packet::ip_header() const") {
+                ret = false;
+            } else if (demangled_fn == "Packet::transport_header() const") {
+                ret = false;
+            } else if (demangled_fn == "Packet::uniqueify()") {
+                ret = false;
+            }
+        }
+        return ret;
+    }
+
+    bool has_side_effect(const Operation &op) {
+        bool ret = true;
+        switch (op.type) {
+        case Operation::T::ARITH:
+        case Operation::T::BITCAST:
+        case Operation::T::GEP:
+        case Operation::T::LOAD:
+        case Operation::T::STRUCT_GET:
+        case Operation::T::PHINODE:
+        case Operation::T::PKT_HDR_LOAD:
+        case Operation::T::SELECT:
+            ret = false;
+            break;
+        case Operation::T::FUNC_CALL:
+            ret = func_has_side_effect(op);
+            break;
+        default:
+            break;
+        }
+        return ret;
+    }
 
     void remove_unused_ops(Function &func) {
         for (auto &bb : func.bbs) {
@@ -119,56 +158,6 @@ namespace HIR {
             }
             bb->ops = std::move(new_ops);
         }
-    }
-
-    void remove_unused_ops(Element &ele) {
-        update_uses(ele);
-        for (auto &f : ele.funcs) {
-            remove_unused_ops(*f);
-        }
-        update_uses(ele);
-    }
-
-    bool func_has_side_effect(const Operation &op) {
-        bool ret = true;
-        auto &func = op.call_info.called_function;
-        auto &fn = op.call_info.func_name;
-        std::string demangled_fn;
-        bool could_demangle = cxx_demangle(fn, demangled_fn);
-
-        if (could_demangle) {
-            if (demangled_fn == "WritablePacket::ip_header() const"
-                || demangled_fn == "Packet::ip_header() const") {
-                ret = false;
-            } else if (demangled_fn == "Packet::transport_header() const") {
-                ret = false;
-            } else if (demangled_fn == "Packet::uniqueify()") {
-                ret = false;
-            }
-        }
-        return ret;
-    }
-
-    bool has_side_effect(const Operation &op) {
-        bool ret = true;
-        switch (op.type) {
-        case Operation::T::ARITH:
-        case Operation::T::BITCAST:
-        case Operation::T::GEP:
-        case Operation::T::LOAD:
-        case Operation::T::STRUCT_GET:
-        case Operation::T::PHINODE:
-        case Operation::T::PKT_HDR_LOAD:
-        case Operation::T::SELECT:
-            ret = false;
-            break;
-        case Operation::T::FUNC_CALL:
-            ret = func_has_side_effect(op);
-            break;
-        default:
-            break;
-        }
-        return ret;
     }
 
     void remove_empty_bb(Function& f) {
@@ -260,10 +249,18 @@ namespace HIR {
         for (int i = 0; i < f.bbs.size(); i++) {
             if (f.bbs[i] == entry_bb) {
                 found = true;
-                f.set_entry_bb_idx(i);
+                f.set_entry_idx(i);
             }
         }
         assert(found);
+    }
+
+    void remove_unused_ops(Element &ele) {
+        update_uses(ele);
+        for (auto &f : ele.funcs) {
+            remove_unused_ops(*f);
+        }
+        update_uses(ele);
     }
 
     bool should_try_inline(const Operation &op) {
@@ -279,8 +276,7 @@ namespace HIR {
             const Graph<
                 std::shared_ptr<Function>,
                 std::monostate,
-                AdjacencyList<std::monostate>
-            > &call_graph,
+                AdjacencyList<std::monostate>> &call_graph,
             size_t v,
             size_t dst,
             std::vector<bool> &visited) {
@@ -305,8 +301,7 @@ namespace HIR {
             const Graph<
                 std::shared_ptr<Function>,
                 std::monostate,
-                AdjacencyList<std::monostate>
-            > &call_graph,
+                AdjacencyList<std::monostate>> &call_graph,
             std::shared_ptr<Function> f) {
         auto vid = 0;
         bool found = false;
@@ -333,8 +328,7 @@ namespace HIR {
             const Graph<
                 std::shared_ptr<Function>,
                 std::monostate,
-                AdjacencyList<std::monostate>
-            > &call_graph,
+                AdjacencyList<std::monostate>> &call_graph,
             const Function &func,
             const std::vector<std::shared_ptr<Var>> &args) {
         std::vector<std::shared_ptr<BasicBlock>> bbs;
@@ -504,7 +498,7 @@ namespace HIR {
         return bbs;
     }
 
-    std::unordered_map<std::shared_ptr<BasicBlock>, size_t>  
+    std::unordered_map<std::shared_ptr<BasicBlock>, size_t>
     get_bb_idx_mapping(const Function& f) {
         std::unordered_map<std::shared_ptr<BasicBlock>, size_t> result;
         for (size_t i = 0; i < f.bbs.size(); i++) {
@@ -513,7 +507,7 @@ namespace HIR {
         return result;
     }
 
-    std::unordered_map<std::shared_ptr<BasicBlock>, std::shared_ptr<BasicBlock>> 
+    std::unordered_map<std::shared_ptr<BasicBlock>, std::shared_ptr<BasicBlock>>
     duplicate_bbs(std::shared_ptr<BasicBlock> start) {
         std::unordered_map<std::shared_ptr<BasicBlock>, std::shared_ptr<BasicBlock>> result;
         // do a breadth first search to discover all basic blocks
@@ -615,8 +609,7 @@ namespace HIR {
     void replace_next_bb(
             std::shared_ptr<BasicBlock> from,
             std::shared_ptr<BasicBlock> old_bb,
-            std::shared_ptr<BasicBlock> new_bb
-    ) {
+            std::shared_ptr<BasicBlock> new_bb) {
         bool found = false;
         auto n_bb = from->default_next_bb.lock();
         assert(n_bb != nullptr);
@@ -635,8 +628,7 @@ namespace HIR {
         assert(found);
     }
 
-
-    // fork from f[bb_idx], if there exists multiple prepositive bb pointed to it
+    // fork from f[bb_idx], if there exists multiple prepositive bb pointed to it 
     void fork_from_bb(Function& f, int bb_idx) {
         assert(0 <= bb_idx && bb_idx < f.bbs.size());
         auto& start_bb = f.bbs[bb_idx];
@@ -713,7 +705,7 @@ namespace HIR {
         }
         for (int i = 0; i < f.bbs.size(); i++) {
             if (f.bbs[i] == entry_bb) {
-                f.set_entry_bb_idx(i);
+                f.set_entry_idx(i);
                 break;
             }
         }
@@ -1019,4 +1011,5 @@ namespace HIR {
         > scc_graph(std::move(scc_graph_vertices), std::move(scc_edges));
         return scc_graph;
     }
+
 }

@@ -48,10 +48,10 @@ file(GLOB TEST_SRC
 foreach(src_file ${EXEC_SRC})
     get_filename_component(prog_name ${src_file} NAME_WE)
     add_executable(${prog_name} ${src_file})
-    target_link_libraries(${prog_name} ${Boost_LIBRARIES})
     target_link_libraries(${prog_name} ${llvm_libs})
+    target_link_libraries(${prog_name} elf) 
     target_link_libraries(${prog_name} libgallispin)
-    target_link_libraries(${prog_name} elf)    
+    target_link_libraries(${prog_name} ${Boost_LIBRARIES})   
 endforeach(src_file ${EXEC_SRC})
 
 enable_testing()

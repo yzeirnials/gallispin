@@ -14,7 +14,8 @@ struct StructLayout
 
 std::string get_llvm_inst_str(const llvm::Instruction *inst);
 std::string get_llvm_name(const llvm::Value &value);
-std::string get_llvm_type_name(const llvm::Type *type);
+std::string get_llvm_type_name(llvm::Type *type);
+// std::string get_llvm_type_name(const llvm::Type &t);
 
 bool is_llvm_constant(const llvm::Value &value);
 
