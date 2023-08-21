@@ -636,6 +636,7 @@ namespace HIR {
     }
 
 
+    // fork from f[bb_idx], if there exists multiple prepositive bb pointed to it
     void fork_from_bb(Function& f, int bb_idx) {
         assert(0 <= bb_idx && bb_idx < f.bbs.size());
         auto& start_bb = f.bbs[bb_idx];

@@ -1,9 +1,0 @@
-/home/chenyz/gallispin/compiler/build/CMakeFiles/rebuild_cache.dir
-/home/chenyz/gallispin/compiler/build/CMakeFiles/edit_cache.dir
-/home/chenyz/gallispin/compiler/build/CMakeFiles/test.dir
-/home/chenyz/gallispin/compiler/build/CMakeFiles/graph-test.dir
-/home/chenyz/gallispin/compiler/build/CMakeFiles/gallispin.dir
-/home/chenyz/gallispin/compiler/build/CMakeFiles/example-hir.dir
-/home/chenyz/gallispin/compiler/build/CMakeFiles/libgallispin.dir
-/home/chenyz/gallispin/compiler/build/CMakeFiles/libgallispinso.dir
-/home/chenyz/gallispin/compiler/build/CMakeFiles/intrinsics_gen.dir

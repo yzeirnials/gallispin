@@ -373,7 +373,8 @@ namespace HIR {
         void update_uses();
     };
 
-
+    // DerivedT: type of the derived visitor
+    // RetT: Return Type of the visitor function
     template<typename DerivedT, typename RetT=void>
     class OperationVisitor{
     public:
