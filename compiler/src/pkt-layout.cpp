@@ -11,7 +11,7 @@ HeaderLayout::HeaderLayout(std::string n, std::vector<Entry> fs)
 std::optional<HeaderLayout::Entry>
 HeaderLayout::FindFieldByOffset(size_t offset) const {
     auto off = 0;
-    for (int i = 0; i < fields.size(); i++) {
+    for (auto i = 0; i < fields.size(); i++) {
         if (off == offset) {
             return fields[i];
         }

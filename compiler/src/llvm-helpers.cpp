@@ -240,7 +240,7 @@ std::string cxx_try_demangle(const std::string &name) {
 bool is_template_type(const std::string &t) {
     int level = 0;
     bool found = false;
-    for (int i = 0; i < t.length(); i++) {
+    for (auto i = 0; i < t.length(); i++) {
         if (t[i] == '<') {
             level++;
             found = true;
